@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 	if (fdin2 < 0) /* means file open did not take place */
 	{
 		printf("error open 2nd %s\n", argv[2]);
+		close(fdin1);
 		return -1;
 	}
 
@@ -53,22 +54,29 @@ int main(int argc, char* argv[])
 		{
 			// DONT PRINT
 			//printf("files are different 1\n");
+			close(fdin1);
+			close(fdin2);
 			return 1;
 		}
 
-		// compate the buffers
+		// compare the buffers
 		// if we got here -> readBytes1 = readBytes2 
 		// so we can use one of them as the size of the buffers
 		if (0 != memcmp(buffer1, buffer2, readBytes1))
 		{
 			// DONT PRINT
 			//printf("files are different 2\n");
+			close(fdin1);
+			close(fdin2);
 			return 1;
 		}
 
 	} while ((readBytes1 == BUFFER_SIZE) && (readBytes2 == BUFFER_SIZE));
 
-	// if we got here -> files are identical!
+	// if we got here -> files are identical! return 2
+	// clean-up fds
+	close(fdin1);
+	close(fdin2);
 	return 2;
 }
 
