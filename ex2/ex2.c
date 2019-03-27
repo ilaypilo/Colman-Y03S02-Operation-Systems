@@ -67,7 +67,7 @@ int readline(int fd, char * buffer)
 	return count;
 }
 
-int executeAndWait(char* program, char * args)
+int executeAndWait(char* program, char * args[])
 {
 	pid_t pid;
 	int status;
