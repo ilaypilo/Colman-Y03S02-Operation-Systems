@@ -20,7 +20,8 @@ Ilay Pilosof 304961519 עילי פילוסוף
 #define PATH_MAX 4096    /* # chars in a path name including null */
 #define BUFFER_SIZE 1024
 #define RESULT_FILE_NAME "results.csv"
-#define GCC_COMMAND "gcc"
+#define STDOUT_FILE_NAME "stdout.txt"
+#define GCC_COMMAND "/usr/bin/gcc"
 
 int readFile(int fd, char * buffer)
 {
@@ -67,31 +68,34 @@ int readline(int fd, char * buffer)
 	return count;
 }
 
-int executeAndWait(char* program, char * args[])
+int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 {
 	pid_t pid;
 	int status;
 
-	if ((pid = fork()) < 0) 
+	if ((pid = fork()) < 0)
 	{     /* fork a child process*/
 		printf("forking child process failed\n");
 		_exit(1);
 	}
-	else if (pid == 0) 
-	{          
+	else if (pid == 0)
+	{
+		// replace stdin/stdout
+		if (0 != childFdIn) dup2(childFdIn, 0);
+		if (0 != childFdOut) dup2(childFdOut, 1);
 		/* for the child process: */
 		/* execute the command  */
 		if (execvp(program, args) < 0)
-		{     
+		{
 			printf("exec failed: %d\n", errno);
 			_exit(1);
 		}
 	}
-	else 
-	{   
+	else
+	{
 		/* for the parent:      */
 		/* wait for completion  */
-		wait(&status);      
+		wait(&status);
 		return status;
 	}
 }
@@ -105,8 +109,9 @@ int main(int argc, char* argv[])
 	char inputFilePath[PATH_MAX]; /* input (output) buffer */
 	char outputFilePath[PATH_MAX]; /* input (output) buffer */
 	char studentPath[PATH_MAX]; /* input (output) buffer */
-	char execArgs[PATH_MAX]; /* input (output) buffer */
-	char* execArr[] = { execArgs };
+	char pathToFile[PATH_MAX]; /* input (output) buffer */
+	char resultLine[PATH_MAX]; /* input (output) buffer */
+	char* execArgv[] = { NULL, NULL, NULL, NULL, NULL, NULL };
 	DIR* dir, *studentDir;
 	struct dirent* rootDirent, *studentDirent;
 	char* dot;
@@ -119,7 +124,7 @@ int main(int argc, char* argv[])
 			"LINE 3: path to output file\n"\
 			, argv[0]);
 
-		return -1;
+		return 0;
 	}
 
 	// read config file
@@ -127,7 +132,7 @@ int main(int argc, char* argv[])
 	if (fd1 < 0)
 	{
 		printf("error open config file %s\n", argv[1]);
-		return -1;
+		return 0;
 	}
 	readline(fd1, studentsDirectoryPath);
 	readline(fd1, inputFilePath);
@@ -139,15 +144,24 @@ int main(int argc, char* argv[])
 	if (fd2 < 0)
 	{
 		printf("error open input file %s\n", inputFilePath);
-		return -1;
+		return 0;
 	}
 
-	fd3 = open(RESULT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
+	fd3 = open(STDOUT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
 	if (fd3 < 0)
+	{
+		printf("error open stdout file %s\n", STDOUT_FILE_NAME);
+		close(fd2);
+		return 0;
+	}
+
+	fd4 = open(RESULT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
+	if (fd4 < 0)
 	{
 		printf("error open results file %s\n", RESULT_FILE_NAME);
 		close(fd2);
-		return -1;
+		close(fd3);
+		return 0;
 	}
 
 	// dir the students directory
@@ -157,7 +171,8 @@ int main(int argc, char* argv[])
 		printf("cannot open dir %s\n", studentsDirectoryPath);
 		close(fd2);
 		close(fd3);
-		return -1;
+		close(fd4);
+		return 0;
 	}
 	while ((rootDirent = readdir(dir)) > 0)
 	{
@@ -177,8 +192,9 @@ int main(int argc, char* argv[])
 			printf("cannot open studentDir %s\n", rootDirent->d_name);
 			close(fd2);
 			close(fd3);
+			close(fd4);
 			closedir(dir);
-			return -1;
+			return 0;
 		}
 		while ((studentDirent = readdir(studentDir)) > 0)
 		{
@@ -186,15 +202,54 @@ int main(int argc, char* argv[])
 			if (studentDirent->d_type != DT_REG) continue;
 			// check if it's a c file
 			dot = strrchr(studentDirent->d_name, '.');
-			if (dot && !strcmp(dot, ".c")) 
-			{
-				sprintf(execArgs, "%s/%s", studentPath, studentDirent->d_name);
-				printf("about to run \"%s %s\"\n", GCC_COMMAND, execArgs);
-				res = executeAndWait(GCC_COMMAND, execArr);
-				printf("%s, return code: %d\n", GCC_COMMAND, res);
-				// compile only one file
+			if (!dot || 0 != strcmp(dot, ".c")) continue;
+
+			sprintf(pathToFile, "%s/%s", studentPath, studentDirent->d_name);
+			printf("about to run \"%s %s\"\n", GCC_COMMAND, pathToFile);
+			// build args
+			execArgv[0] = GCC_COMMAND;
+			execArgv[1] = pathToFile;
+			execArgv[2] = "-o";
+			execArgv[3] = "compiled";
+			execArgv[4] = NULL;
+
+			res = executeAndWait(execArgv[0], execArgv, 0, 0);
+
+			printf("%s, return code: %d\n", execArgv[0], res);
+			if (res != 0) {
+				// gcc failed to compile
+				// put zero in results
+				res = sprintf(resultLine, "%s,%d\n", rootDirent->d_name, 0);
+				if (0 > write(fd4, resultLine, res))
+				{
+					close(fd2);
+					close(fd3);
+					close(fd4);
+					closedir(dir);
+					return 0;
+				}
 				break;
 			}
+			else // compiled success
+			{
+				// build args
+				execArgv[0] = "/home/student/Desktop/Colman-Y03S02-Operation-Systems/ex2/compiled";
+				execArgv[1] = NULL;
+				res = executeAndWait(execArgv[0], execArgv, fd2, fd3);
+				printf("%s, return code: %d\n", execArgv[0], res);
+				res = sprintf(resultLine, "%s,%d\n", rootDirent->d_name, 100);
+				if (0 > write(fd4, resultLine, res))
+				{
+					close(fd2);
+					close(fd3);
+					close(fd4);
+					closedir(dir);
+					return 0;
+				}
+				break;
+			}
+			// compile only one file
+			break;
 		} // student's file loop
 		closedir(studentDir);
 	} // root students loop
