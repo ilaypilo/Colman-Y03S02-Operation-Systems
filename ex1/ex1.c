@@ -1,6 +1,6 @@
 /*
 Operation System - Igor Rochlin
-19/03/19
+27/03/19
 Ex1 - Compare 2 files
 Bar Zrihan 203285770 בר זריהן
 Ilay Pilosof 304961519 עילי פילוסוף
@@ -50,10 +50,18 @@ int main(int argc, char* argv[])
 	{
 		readBytes1 = read(fdin1, buffer1, BUFFER_SIZE);
 		readBytes2 = read(fdin2, buffer2, BUFFER_SIZE);
+                // check read error
+		if (readBytes1 < 0 || readBytes2 < 0)
+		{
+			printf("error while reading the files\n");
+			close(fdin1);
+			close(fdin2);
+			return -1;
+		}
+                // check if bytes read are equal
 		if (readBytes1 != readBytes2)
 		{
-			// DONT PRINT
-			//printf("files are different 1\n");
+			// file are different
 			close(fdin1);
 			close(fdin2);
 			return 1;
@@ -64,8 +72,7 @@ int main(int argc, char* argv[])
 		// so we can use one of them as the size of the buffers
 		if (0 != memcmp(buffer1, buffer2, readBytes1))
 		{
-			// DONT PRINT
-			//printf("files are different 2\n");
+			// file are different
 			close(fdin1);
 			close(fdin2);
 			return 1;
