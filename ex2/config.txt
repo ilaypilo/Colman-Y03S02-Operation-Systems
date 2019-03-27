@@ -1,0 +1,3 @@
+/home/student/Desktop/Colman-Y03S02-Operation-Systems/ex2/students
+/home/student/Desktop/Colman-Y03S02-Operation-Systems/ex2/input.txt
+/home/student/Desktop/Colman-Y03S02-Operation-Systems/ex2/output.txt
