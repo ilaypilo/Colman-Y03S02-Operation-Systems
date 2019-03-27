@@ -113,10 +113,10 @@ int main(int argc, char* argv[])
 
 	if (argc != 2) {
 		printf("Usage: %s <config file>\n"\
-			"config format:"\
-			"LINE 1: path to user's direcorty"\
-			"LINE 2: path to input file"\
-			"LINE 3: path to output file"\
+			"config format:\n"\
+			"LINE 1: path to user's direcorty\n"\
+			"LINE 2: path to input file\n"\
+			"LINE 3: path to output file\n"\
 			, argv[0]);
 
 		return -1;
