@@ -6,7 +6,6 @@ Bar Zrihan 203285770 בר זריהן
 Ilay Pilosof 304961519 עילי פילוסוף
 */
 
-#include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -17,7 +16,25 @@ Ilay Pilosof 304961519 עילי פילוסוף
 #include <stdio.h>
 #include <string.h>
 
-#define PATH_MAX 4096    /* # chars in a path name including null */
+
+// #####################  For MacOS - taken from linux/limits.h
+#define NR_OPEN	        1024
+
+#define NGROUPS_MAX    65536	/* supplemental group IDs are available */
+#define ARG_MAX       131072	/* # bytes of args + environ for exec() */
+#define LINK_MAX         127	/* # links a file may have */
+#define MAX_CANON        255	/* size of the canonical input queue */
+#define MAX_INPUT        255	/* size of the type-ahead buffer */
+#define NAME_MAX         255	/* # chars in a file name */
+#define PATH_MAX        4096	/* # chars in a path name including nul */
+#define PIPE_BUF        4096	/* # bytes in atomic write to a pipe */
+#define XATTR_NAME_MAX   255	/* # chars in an extended attribute name */
+#define XATTR_SIZE_MAX 65536	/* size of an extended attribute value (64k) */
+#define XATTR_LIST_MAX 65536	/* size of extended attribute namelist (64k) */
+
+#define RTSIG_MAX	  32
+// #####################  For MacOS - taken from linux/limits.h
+
 #define BUFFER_SIZE 1024
 #define RESULT_FILE_NAME "results.csv"
 #define STDOUT_FILE_NAME "stdout.txt"
@@ -98,7 +115,9 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 		wait(&status);
 		return status;
 	}
+	return status;
 }
+
 
 int main(int argc, char* argv[])
 {
@@ -232,8 +251,12 @@ int main(int argc, char* argv[])
 			}
 			else // compiled success
 			{
+				char cwd[PATH_MAX];
+				getcwd(cwd, sizeof(cwd));
+				char * _file = "/compiled";
+				strcat(cwd, _file);
 				// build args
-				execArgv[0] = "/home/student/Desktop/Colman-Y03S02-Operation-Systems/ex2/compiled";
+				execArgv[0] = cwd;
 				execArgv[1] = NULL;
 				res = executeAndWait(execArgv[0], execArgv, fd2, fd3);
 				printf("%s, return code: %d\n", execArgv[0], res);
