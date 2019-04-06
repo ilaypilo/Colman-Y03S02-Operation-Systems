@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
 		}
 
 		printf("student name: %s\n", rootDirent->d_name);
-		sprintf(studentPath, "%s/%s", studentsDirectoryPath, rootDirent->d_name);
+		sprintf(studentPath, "%s%s", studentsDirectoryPath, rootDirent->d_name);
 		studentDir = opendir(studentPath);
 		if (NULL == studentDir)
 		{
@@ -251,10 +251,11 @@ int main(int argc, char* argv[])
 			}
 			else // compiled success
 			{
+				// Get current dir and appends to it the destination file name
 				char cwd[PATH_MAX];
-				getcwd(cwd, sizeof(cwd));
 				char * _file = "/compiled";
-				strcat(cwd, _file);
+				getcwd(cwd, sizeof(cwd));  // get currect dir path
+				strcat(cwd, _file);  // append filename to current path
 				// build args
 				execArgv[0] = cwd;
 				execArgv[1] = NULL;
