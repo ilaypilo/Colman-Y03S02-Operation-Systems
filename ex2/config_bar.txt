@@ -1,0 +1,4 @@
+/Users/barzrihan/PycharmProjects/Colman-Y03S02-Operation-Systems/ex2/students
+/Users/barzrihan/PycharmProjects/Colman-Y03S02-Operation-Systems/ex2/input.txt
+/Users/barzrihan/PycharmProjects/Colman-Y03S02-Operation-Systems/ex2/output.txt
+
