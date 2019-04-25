@@ -100,7 +100,6 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 		// replace stdin/stdout
 		if (0 != childFdIn) dup2(childFdIn, STDIN_FILENO);
 		if (0 != childFdOut) dup2(childFdOut, STDOUT_FILENO);
-		if (0 != childFdOut) dup2(childFdOut, STDERR_FILENO);
 
 		/* for the child process: */
 		/* execute the command  */
@@ -131,16 +130,21 @@ int main(int argc, char* argv[])
 		fd4 - CSV results
 	 */
 	int fd1, fd2, fd3, fd4;
-	int studentScore; /* function return code result */
+	int res;  /* function return code result */
+	int studentScore;
 	char studentsDirectoryPath[PATH_MAX]; /* input (output) buffer */
 	char inputFilePath[PATH_MAX]; /* input (output) buffer */
 	char outputFilePath[PATH_MAX]; /* input (output) buffer */
-	char outputFileContent[BUFFER_SIZE]; /* output file content */
-	char outputProgContent[BUFFER_SIZE]; /* output program content */
 	char studentPath[PATH_MAX]; /* input (output) buffer */
 	char pathToFile[PATH_MAX]; /* input (output) buffer */
 	char resultLine[PATH_MAX]; /* input (output) buffer */
-	char* execArgv[] = { NULL, NULL, NULL };
+
+	char cwd[PATH_MAX];
+	getcwd(cwd, sizeof(cwd));
+	char * _file = "/comp.out";
+	strcat(cwd, _file);
+
+	char* execArgv[] = { NULL, NULL, NULL, NULL };
 	DIR* dir, *studentDir;
 	struct dirent* studentsDirent, *studentDirent;
 
@@ -168,11 +172,6 @@ int main(int argc, char* argv[])
 	readline(fd1, inputFilePath);
 	readline(fd1, outputFilePath);
 	close(fd1);  // config file is not needed anymore, closing it
-
-	// read ouptut file
-	fd1 = open(outputFilePath, O_RDONLY);
-	readFile(fd1, outputFileContent);
-        close(fd1);  // output file is not needed anymore, closing it
 
 	// open input file
 	fd2 = open(inputFilePath, O_RDONLY);
@@ -247,8 +246,8 @@ int main(int argc, char* argv[])
 			if (0 != strcmp(studentDirent->d_name, EXEC_FILE_NAME)) continue;
 
 			sprintf(pathToFile, "%s/%s", studentPath, studentDirent->d_name);
-			// set inputs file to the beggining of the file
-			if (lseek(fd2, 0, SEEK_SET) < 0)
+			// set inputs and output file to the beggining of the file
+			if (lseek(fd2, 0, SEEK_SET) < 0 || lseek(fd3, 0, SEEK_SET) < 0)
 			{
 				printf("cannot seek file back to 0");
                 		close(fd2);
@@ -262,17 +261,20 @@ int main(int argc, char* argv[])
 			// build args
 			execArgv[0] = pathToFile;
 			execArgv[1] = NULL;
-			lseek(fd3, 0, SEEK_SET);
-			studentScore = executeAndWait(execArgv[0], execArgv, fd2, fd3);
-			lseek(fd3, 0, SEEK_SET);
-			// compare program output (fd3) to the expected output
-			readFile(fd3, outputProgContent);
-			if (studentScore == 0 && strcmp(outputProgContent, outputFileContent) == 0) {
+			res = executeAndWait(execArgv[0], execArgv, fd2, fd3);
+			studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 0);
+			if (res != 0) {
+				break;
+			}
+			// compare program output to the expected output
+			execArgv[0] = cwd;
+			execArgv[1] = outputFilePath;
+			execArgv[2] = STDOUT_FILE_NAME;
+			execArgv[3] = NULL;
+			res = executeAndWait(execArgv[0], execArgv, 0, 0);
+			if (res == 2) {
 				printf("YAY 100!\n");
 				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 100);
-			}
-			else {
-				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 0);
 			}
 			break;
 		} 
