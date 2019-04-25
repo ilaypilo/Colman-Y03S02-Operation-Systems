@@ -38,7 +38,7 @@ Ilay Pilosof 304961519 עילי פילוסוף
 #define BUFFER_SIZE 1024
 #define RESULT_FILE_NAME "results.csv"
 #define STDOUT_FILE_NAME "stdout.txt"
-#define GCC_COMMAND "/usr/bin/gcc"
+#define EXEC_FILE_NAME "main.exe"
 
 int readFile(int fd, char * buffer)
 {
@@ -98,8 +98,10 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 	else if (pid == 0)
 	{
 		// replace stdin/stdout
-		if (0 != childFdIn) dup2(childFdIn, 0);
-		if (0 != childFdOut) dup2(childFdOut, 1);
+		if (0 != childFdIn) dup2(childFdIn, STDIN_FILENO);
+		if (0 != childFdOut) dup2(childFdOut, STDOUT_FILENO);
+		if (0 != childFdOut) dup2(childFdOut, STDERR_FILENO);
+
 		/* for the child process: */
 		/* execute the command  */
 		if (execvp(program, args) < 0)
@@ -121,24 +123,32 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 
 int main(int argc, char* argv[])
 {
-	int fd1, fd2, fd3, fd4;   /* input file descriptor */
-	int res; /* function result */
-	int sizeOfInputFile;
+	/* 
+	input file descriptors:
+		fd1 - Program's config
+		fd2 - Inputs
+		fd3 - stdout 
+		fd4 - CSV results
+	 */
+	int fd1, fd2, fd3, fd4;
+	int studentScore; /* function return code result */
 	char studentsDirectoryPath[PATH_MAX]; /* input (output) buffer */
 	char inputFilePath[PATH_MAX]; /* input (output) buffer */
 	char outputFilePath[PATH_MAX]; /* input (output) buffer */
+	char outputFileContent[BUFFER_SIZE]; /* output file content */
+	char outputProgContent[BUFFER_SIZE]; /* output program content */
 	char studentPath[PATH_MAX]; /* input (output) buffer */
 	char pathToFile[PATH_MAX]; /* input (output) buffer */
 	char resultLine[PATH_MAX]; /* input (output) buffer */
-	char* execArgv[] = { NULL, NULL, NULL, NULL, NULL, NULL };
+	char* execArgv[] = { NULL, NULL, NULL };
 	DIR* dir, *studentDir;
-	struct dirent* rootDirent, *studentDirent;
-	char* dot;
+	struct dirent* studentsDirent, *studentDirent;
 
+	// Validate program usage before continue
 	if (argc != 2) {
 		printf("Usage: %s <config file>\n"\
 			"config format:\n"\
-			"LINE 1: path to user's direcorty\n"\
+			"LINE 1: path to user's directory\n"\
 			"LINE 2: path to input file\n"\
 			"LINE 3: path to output file\n"\
 			, argv[0]);
@@ -153,10 +163,16 @@ int main(int argc, char* argv[])
 		printf("error open config file %s\n", argv[1]);
 		return 0;
 	}
+	// read the first 3 lines, each line indicates different path
 	readline(fd1, studentsDirectoryPath);
 	readline(fd1, inputFilePath);
 	readline(fd1, outputFilePath);
-	close(fd1);
+	close(fd1);  // config file is not needed anymore, closing it
+
+	// read ouptut file
+	fd1 = open(outputFilePath, O_RDONLY);
+	readFile(fd1, outputFileContent);
+        close(fd1);  // output file is not needed anymore, closing it
 
 	// open input file
 	fd2 = open(inputFilePath, O_RDONLY);
@@ -166,6 +182,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	// open stdout file
 	fd3 = open(STDOUT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
 	if (fd3 < 0)
 	{
@@ -174,6 +191,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	// open results file
 	fd4 = open(RESULT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
 	if (fd4 < 0)
 	{
@@ -193,88 +211,81 @@ int main(int argc, char* argv[])
 		close(fd4);
 		return 0;
 	}
-	while ((rootDirent = readdir(dir)) > 0)
+
+	// start the main loop over students directory
+	while ((studentsDirent = readdir(dir)))
 	{
-		if (rootDirent->d_type != DT_DIR ||
-			0 == strcmp(rootDirent->d_name, ".") ||
-			0 == strcmp(rootDirent->d_name, ".."))
+		// enters only to students directories
+		if (studentsDirent->d_type != DT_DIR ||
+			0 == strcmp(studentsDirent->d_name, ".") ||
+			0 == strcmp(studentsDirent->d_name, ".."))
 		{
 			// skip -> item is not a directory or it's ./..
 			continue;
 		}
 
-		printf("student name: %s\n", rootDirent->d_name);
-		sprintf(studentPath, "%s%s", studentsDirectoryPath, rootDirent->d_name);
+		printf("student name: %s\n", studentsDirent->d_name);
+		sprintf(studentPath, "%s%s", studentsDirectoryPath, studentsDirent->d_name);
 		studentDir = opendir(studentPath);
 		if (NULL == studentDir)
 		{
-			printf("cannot open studentDir %s\n", rootDirent->d_name);
+			printf("cannot open studentDir %s\n", studentsDirent->d_name);
 			close(fd2);
 			close(fd3);
 			close(fd4);
 			closedir(dir);
 			return 0;
 		}
-		while ((studentDirent = readdir(studentDir)) > 0)
+
+		// go over the files inside specific student
+		while ((studentDirent = readdir(studentDir)))
 		{
+			studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 0);
 			// skip -> item is not a file
 			if (studentDirent->d_type != DT_REG) continue;
-			// check if it's a c file
-			dot = strrchr(studentDirent->d_name, '.');
-			if (!dot || 0 != strcmp(dot, ".c")) continue;
+			// check if it's a main.exe file
+			if (0 != strcmp(studentDirent->d_name, EXEC_FILE_NAME)) continue;
 
 			sprintf(pathToFile, "%s/%s", studentPath, studentDirent->d_name);
-			printf("about to run \"%s %s\"\n", GCC_COMMAND, pathToFile);
-			// build args
-			execArgv[0] = GCC_COMMAND;
-			execArgv[1] = pathToFile;
-			execArgv[2] = "-o";
-			execArgv[3] = "compiled";
-			execArgv[4] = NULL;
-
-			res = executeAndWait(execArgv[0], execArgv, 0, 0);
-
-			printf("%s, return code: %d\n", execArgv[0], res);
-			if (res != 0) {
-				// gcc failed to compile
-				// put zero in results
-				res = sprintf(resultLine, "%s,%d\n", rootDirent->d_name, 0);
-				if (0 > write(fd4, resultLine, res))
-				{
-					close(fd2);
-					close(fd3);
-					close(fd4);
-					closedir(dir);
-					return 0;
-				}
-				break;
-			}
-			else // compiled success
+			// set inputs file to the beggining of the file
+			if (lseek(fd2, 0, SEEK_SET) < 0)
 			{
-				// Get current dir and appends to it the destination file name
-				char cwd[PATH_MAX];
-				char * _file = "/compiled";
-				getcwd(cwd, sizeof(cwd));  // get currect dir path
-				strcat(cwd, _file);  // append filename to current path
-				// build args
-				execArgv[0] = cwd;
-				execArgv[1] = NULL;
-				res = executeAndWait(execArgv[0], execArgv, fd2, fd3);
-				printf("%s, return code: %d\n", execArgv[0], res);
-				res = sprintf(resultLine, "%s,%d\n", rootDirent->d_name, 100);
-				if (0 > write(fd4, resultLine, res))
-				{
-					close(fd2);
-					close(fd3);
-					close(fd4);
-					closedir(dir);
-					return 0;
-				}
-				break;
+				printf("cannot seek file back to 0");
+                		close(fd2);
+                		close(fd3);
+                		close(fd4);
+				closedir(dir);
+				closedir(studentDir);
+                		return 0;
 			}
-			// compile only one file
+
+			// build args
+			execArgv[0] = pathToFile;
+			execArgv[1] = NULL;
+			lseek(fd3, 0, SEEK_SET);
+			studentScore = executeAndWait(execArgv[0], execArgv, fd2, fd3);
+			lseek(fd3, 0, SEEK_SET);
+			// compare program output (fd3) to the expected output
+			readFile(fd3, outputProgContent);
+			if (studentScore == 0 && strcmp(outputProgContent, outputFileContent) == 0) {
+				printf("YAY 100!\n");
+				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 100);
+			}
+			else {
+				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 0);
+			}
 			break;
-		} // student's file loop
+		} 
+		// write student results to file
+		if (0 > write(fd4, resultLine, studentScore))
+                {
+			close(fd2);
+                        close(fd3);
+                        close(fd4);
+                        closedir(dir);
+			closedir(studentDir);
+                        return 0;
+                }	
 		closedir(studentDir);
 	} // root students loop
 
