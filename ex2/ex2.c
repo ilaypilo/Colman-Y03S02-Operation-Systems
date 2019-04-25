@@ -272,7 +272,7 @@ int main(int argc, char* argv[])
 			execArgv[2] = STDOUT_FILE_NAME;
 			execArgv[3] = NULL;
 			res = executeAndWait(execArgv[0], execArgv, 0, 0);
-			if (res == 2) {
+			if (WEXITSTATUS(res) == 2) {
 				printf("YAY 100!\n");
 				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 100);
 			}
