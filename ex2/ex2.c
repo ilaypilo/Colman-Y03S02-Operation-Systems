@@ -49,7 +49,7 @@ int readFile(int fd, char * buffer)
 		readBytes = read(fd, buffer, BUFFER_SIZE);
 		if (readBytes < 0)
 		{
-			printf("error reading the file\n");
+			// printf("error reading the file\n");
 			_exit(readBytes);
 		}
 		totalBytes += readBytes;
@@ -78,10 +78,10 @@ int readline(int fd, char * buffer)
 	}
 	if (res < 0) /* means file read failed */
 	{
-		printf("error reading the line\n");
+		// printf("error reading the line\n");
 		_exit(res);
 	}
-	printf("done reading the line: %s\n", buffer);
+	// printf("done reading the line: %s\n", buffer);
 	return count;
 }
 
@@ -92,7 +92,7 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 
 	if ((pid = fork()) < 0)
 	{     /* fork a child process*/
-		printf("forking child process failed\n");
+		// printf("forking child process failed\n");
 		_exit(1);
 	}
 	else if (pid == 0)
@@ -105,7 +105,7 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 		/* execute the command  */
 		if (execvp(program, args) < 0)
 		{
-			printf("exec failed: %d\n", errno);
+			// printf("exec failed: %d\n", errno);
 			_exit(1);
 		}
 	}
@@ -150,12 +150,12 @@ int main(int argc, char* argv[])
 
 	// Validate program usage before continue
 	if (argc != 2) {
-		printf("Usage: %s <config file>\n"\
-			"config format:\n"\
-			"LINE 1: path to user's directory\n"\
-			"LINE 2: path to input file\n"\
-			"LINE 3: path to output file\n"\
-			, argv[0]);
+// 		printf("Usage: %s <config file>\n"\
+// 			"config format:\n"\
+// 			"LINE 1: path to user's directory\n"\
+// 			"LINE 2: path to input file\n"\
+// 			"LINE 3: path to output file\n"\
+// 			, argv[0]);
 
 		return 0;
 	}
@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
 	fd1 = open(argv[1], O_RDONLY);
 	if (fd1 < 0)
 	{
-		printf("error open config file %s\n", argv[1]);
+		// printf("error open config file %s\n", argv[1]);
 		return 0;
 	}
 	// read the first 3 lines, each line indicates different path
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 	fd2 = open(inputFilePath, O_RDONLY);
 	if (fd2 < 0)
 	{
-		printf("error open input file %s\n", inputFilePath);
+		// printf("error open input file %s\n", inputFilePath);
 		return 0;
 	}
 
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 	fd3 = open(STDOUT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
 	if (fd3 < 0)
 	{
-		printf("error open stdout file %s\n", STDOUT_FILE_NAME);
+		// printf("error open stdout file %s\n", STDOUT_FILE_NAME);
 		close(fd2);
 		return 0;
 	}
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 	fd4 = open(RESULT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
 	if (fd4 < 0)
 	{
-		printf("error open results file %s\n", RESULT_FILE_NAME);
+		// printf("error open results file %s\n", RESULT_FILE_NAME);
 		close(fd2);
 		close(fd3);
 		return 0;
@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
 	dir = opendir(studentsDirectoryPath);
 	if (NULL == dir)
 	{
-		printf("cannot open dir %s\n", studentsDirectoryPath);
+		// printf("cannot open dir %s\n", studentsDirectoryPath);
 		close(fd2);
 		close(fd3);
 		close(fd4);
@@ -223,12 +223,12 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		printf("student name: %s\n", studentsDirent->d_name);
+		// printf("student name: %s\n", studentsDirent->d_name);
 		sprintf(studentPath, "%s%s", studentsDirectoryPath, studentsDirent->d_name);
 		studentDir = opendir(studentPath);
 		if (NULL == studentDir)
 		{
-			printf("cannot open studentDir %s\n", studentsDirent->d_name);
+			// printf("cannot open studentDir %s\n", studentsDirent->d_name);
 			close(fd2);
 			close(fd3);
 			close(fd4);
@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
 			// set inputs and output file to the beggining of the file
 			if (lseek(fd2, 0, SEEK_SET) < 0 || lseek(fd3, 0, SEEK_SET) < 0)
 			{
-				printf("cannot seek file back to 0");
+				// printf("cannot seek file back to 0");
                 		close(fd2);
                 		close(fd3);
                 		close(fd4);
@@ -273,7 +273,7 @@ int main(int argc, char* argv[])
 			execArgv[3] = NULL;
 			res = executeAndWait(execArgv[0], execArgv, 0, 0);
 			if (WEXITSTATUS(res) == 2) {
-				printf("YAY 100!\n");
+				// printf("YAY 100!\n");
 				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 100);
 			}
 			break;
