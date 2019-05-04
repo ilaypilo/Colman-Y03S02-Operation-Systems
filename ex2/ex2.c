@@ -18,21 +18,21 @@ Ilay Pilosof 304961519 עילי פילוסוף
 
 
 // #####################  For MacOS - taken from linux/limits.h
-#define NR_OPEN	        1024
+#define NR_OPEN            1024
 
-#define NGROUPS_MAX    65536	/* supplemental group IDs are available */
-#define ARG_MAX       131072	/* # bytes of args + environ for exec() */
-#define LINK_MAX         127	/* # links a file may have */
-#define MAX_CANON        255	/* size of the canonical input queue */
-#define MAX_INPUT        255	/* size of the type-ahead buffer */
-#define NAME_MAX         255	/* # chars in a file name */
-#define PATH_MAX        4096	/* # chars in a path name including nul */
-#define PIPE_BUF        4096	/* # bytes in atomic write to a pipe */
-#define XATTR_NAME_MAX   255	/* # chars in an extended attribute name */
-#define XATTR_SIZE_MAX 65536	/* size of an extended attribute value (64k) */
-#define XATTR_LIST_MAX 65536	/* size of extended attribute namelist (64k) */
+#define NGROUPS_MAX    65536    /* supplemental group IDs are available */
+#define ARG_MAX       131072    /* # bytes of args + environ for exec() */
+#define LINK_MAX         127    /* # links a file may have */
+#define MAX_CANON        255    /* size of the canonical input queue */
+#define MAX_INPUT        255    /* size of the type-ahead buffer */
+#define NAME_MAX         255    /* # chars in a file name */
+#define PATH_MAX        4096    /* # chars in a path name including nul */
+#define PIPE_BUF        4096    /* # bytes in atomic write to a pipe */
+#define XATTR_NAME_MAX   255    /* # chars in an extended attribute name */
+#define XATTR_SIZE_MAX 65536    /* size of an extended attribute value (64k) */
+#define XATTR_LIST_MAX 65536    /* size of extended attribute namelist (64k) */
 
-#define RTSIG_MAX	  32
+#define RTSIG_MAX      32
 // #####################  For MacOS - taken from linux/limits.h
 
 #define BUFFER_SIZE 1024
@@ -40,15 +40,12 @@ Ilay Pilosof 304961519 עילי פילוסוף
 #define STDOUT_FILE_NAME "stdout.txt"
 #define EXEC_FILE_NAME "main.exe"
 
-int readFile(int fd, char * buffer)
-{
+int readFile(int fd, char *buffer) {
 	int readBytes;
 	int totalBytes = 0;
-	do
-	{
+	do {
 		readBytes = read(fd, buffer, BUFFER_SIZE);
-		if (readBytes < 0)
-		{
+		if (readBytes < 0) {
 			// printf("error reading the file\n");
 			_exit(readBytes);
 		}
@@ -59,16 +56,13 @@ int readFile(int fd, char * buffer)
 }
 
 
-int readline(int fd, char * buffer)
-{
+int readline(int fd, char *buffer) {
 	int res;
 	int count = 0;
-	char * ptrLine = buffer;
-	while ((res = read(fd, ptrLine, 1)) > 0)
-	{
+	char *ptrLine = buffer;
+	while ((res = read(fd, ptrLine, 1)) > 0) {
 		// break if EOL (end of line)
-		if (*ptrLine == '\n' || *ptrLine == '\0')
-		{
+		if (*ptrLine == '\n' || *ptrLine == '\0') {
 			// null terminate the file
 			*ptrLine = '\0';
 			break;
@@ -85,32 +79,25 @@ int readline(int fd, char * buffer)
 	return count;
 }
 
-int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
-{
+int executeAndWait(char *program, char *args[], int childFdIn, int childFdOut) {
 	pid_t pid;
 	int status;
 
-	if ((pid = fork()) < 0)
-	{     /* fork a child process*/
+	if ((pid = fork()) < 0) {     /* fork a child process*/
 		// printf("forking child process failed\n");
 		_exit(1);
-	}
-	else if (pid == 0)
-	{
+	} else if (pid == 0) {
 		// replace stdin/stdout
 		if (0 != childFdIn) dup2(childFdIn, STDIN_FILENO);
 		if (0 != childFdOut) dup2(childFdOut, STDOUT_FILENO);
 
 		/* for the child process: */
 		/* execute the command  */
-		if (execvp(program, args) < 0)
-		{
+		if (execvp(program, args) < 0) {
 			// printf("exec failed: %d\n", errno);
 			_exit(1);
 		}
-	}
-	else
-	{
+	} else {
 		/* for the parent:      */
 		/* wait for completion  */
 		wait(&status);
@@ -120,8 +107,7 @@ int executeAndWait(char* program, char * args[], int childFdIn, int childFdOut)
 }
 
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
 	/* 
 	input file descriptors:
 		fd1 - Program's config
@@ -141,12 +127,12 @@ int main(int argc, char* argv[])
 
 	char cwd[PATH_MAX];
 	getcwd(cwd, sizeof(cwd));
-	char * _file = "/comp.out";
+	char *_file = "/comp.out";
 	strcat(cwd, _file);
 
-	char* execArgv[] = { NULL, NULL, NULL, NULL };
-	DIR* dir, *studentDir;
-	struct dirent* studentsDirent, *studentDirent;
+	char *execArgv[] = {NULL, NULL, NULL, NULL};
+	DIR *dir, *studentDir;
+	struct dirent *studentsDirent, *studentDirent;
 
 	// Validate program usage before continue
 	if (argc != 2) {
@@ -162,8 +148,7 @@ int main(int argc, char* argv[])
 
 	// read config file
 	fd1 = open(argv[1], O_RDONLY);
-	if (fd1 < 0)
-	{
+	if (fd1 < 0) {
 		// printf("error open config file %s\n", argv[1]);
 		return 0;
 	}
@@ -175,16 +160,14 @@ int main(int argc, char* argv[])
 
 	// open input file
 	fd2 = open(inputFilePath, O_RDONLY);
-	if (fd2 < 0)
-	{
+	if (fd2 < 0) {
 		// printf("error open input file %s\n", inputFilePath);
 		return 0;
 	}
 
 	// open stdout file
 	fd3 = open(STDOUT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
-	if (fd3 < 0)
-	{
+	if (fd3 < 0) {
 		// printf("error open stdout file %s\n", STDOUT_FILE_NAME);
 		close(fd2);
 		return 0;
@@ -192,8 +175,7 @@ int main(int argc, char* argv[])
 
 	// open results file
 	fd4 = open(RESULT_FILE_NAME, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
-	if (fd4 < 0)
-	{
+	if (fd4 < 0) {
 		// printf("error open results file %s\n", RESULT_FILE_NAME);
 		close(fd2);
 		close(fd3);
@@ -202,8 +184,7 @@ int main(int argc, char* argv[])
 
 	// dir the students directory
 	dir = opendir(studentsDirectoryPath);
-	if (NULL == dir)
-	{
+	if (NULL == dir) {
 		// printf("cannot open dir %s\n", studentsDirectoryPath);
 		close(fd2);
 		close(fd3);
@@ -212,13 +193,11 @@ int main(int argc, char* argv[])
 	}
 
 	// start the main loop over students directory
-	while ((studentsDirent = readdir(dir)))
-	{
+	while ((studentsDirent = readdir(dir))) {
 		// enters only to students directories
 		if (studentsDirent->d_type != DT_DIR ||
 			0 == strcmp(studentsDirent->d_name, ".") ||
-			0 == strcmp(studentsDirent->d_name, ".."))
-		{
+			0 == strcmp(studentsDirent->d_name, "..")) {
 			// skip -> item is not a directory or it's ./..
 			continue;
 		}
@@ -226,8 +205,7 @@ int main(int argc, char* argv[])
 		// printf("student name: %s\n", studentsDirent->d_name);
 		sprintf(studentPath, "%s%s", studentsDirectoryPath, studentsDirent->d_name);
 		studentDir = opendir(studentPath);
-		if (NULL == studentDir)
-		{
+		if (NULL == studentDir) {
 			// printf("cannot open studentDir %s\n", studentsDirent->d_name);
 			close(fd2);
 			close(fd3);
@@ -237,8 +215,7 @@ int main(int argc, char* argv[])
 		}
 
 		// go over the files inside specific student
-		while ((studentDirent = readdir(studentDir)))
-		{
+		while ((studentDirent = readdir(studentDir))) {
 			studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 0);
 			// skip -> item is not a file
 			if (studentDirent->d_type != DT_REG) continue;
@@ -247,15 +224,14 @@ int main(int argc, char* argv[])
 
 			sprintf(pathToFile, "%s/%s", studentPath, studentDirent->d_name);
 			// set inputs and output file to the beggining of the file
-			if (lseek(fd2, 0, SEEK_SET) < 0 || lseek(fd3, 0, SEEK_SET) < 0)
-			{
+			if (lseek(fd2, 0, SEEK_SET) < 0 || lseek(fd3, 0, SEEK_SET) < 0) {
 				// printf("cannot seek file back to 0");
-                		close(fd2);
-                		close(fd3);
-                		close(fd4);
+				close(fd2);
+				close(fd3);
+				close(fd4);
 				closedir(dir);
 				closedir(studentDir);
-                		return 0;
+				return 0;
 			}
 
 			// build args
@@ -277,17 +253,16 @@ int main(int argc, char* argv[])
 				studentScore = sprintf(resultLine, "%s,%d\n", studentsDirent->d_name, 100);
 			}
 			break;
-		} 
+		}
 		// write student results to file
-		if (0 > write(fd4, resultLine, studentScore))
-                {
+		if (0 > write(fd4, resultLine, studentScore)) {
 			close(fd2);
-                        close(fd3);
-                        close(fd4);
-                        closedir(dir);
+			close(fd3);
+			close(fd4);
+			closedir(dir);
 			closedir(studentDir);
-                        return 0;
-                }	
+			return 0;
+		}
 		closedir(studentDir);
 	} // root students loop
 

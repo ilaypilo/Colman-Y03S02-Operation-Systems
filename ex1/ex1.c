@@ -17,8 +17,7 @@ Ilay Pilosof 304961519 עילי פילוסוף
 
 #define BUFFER_SIZE 1024
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
 	int fdin1, fdin2;   /* input file descriptor */
 	int readBytes1, readBytes2; /* read bytes counter */
 	int res; /* strcmp result */
@@ -46,21 +45,18 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	do
-	{
+	do {
 		readBytes1 = read(fdin1, buffer1, BUFFER_SIZE);
 		readBytes2 = read(fdin2, buffer2, BUFFER_SIZE);
-                // check read error
-		if (readBytes1 < 0 || readBytes2 < 0)
-		{
+		// check read error
+		if (readBytes1 < 0 || readBytes2 < 0) {
 			//printf("error while reading the files\n");
 			close(fdin1);
 			close(fdin2);
 			return 0;
 		}
-                // check if bytes read are equal
-		if (readBytes1 != readBytes2)
-		{
+		// check if bytes read are equal
+		if (readBytes1 != readBytes2) {
 			// file are different
 			close(fdin1);
 			close(fdin2);
@@ -70,8 +66,7 @@ int main(int argc, char* argv[])
 		// compare the buffers
 		// if we got here -> readBytes1 = readBytes2 
 		// so we can use one of them as the size of the buffers
-		if (0 != memcmp(buffer1, buffer2, readBytes1))
-		{
+		if (0 != memcmp(buffer1, buffer2, readBytes1)) {
 			// file are different
 			close(fdin1);
 			close(fdin2);
