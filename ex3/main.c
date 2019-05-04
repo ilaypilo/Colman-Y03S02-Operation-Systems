@@ -52,8 +52,7 @@ void FCFSfindTurnAroundTime(int processes[], int n, int bt[]) {
 	for (int i = 0; i < n; i++) {
 		tat[i] = bt[i] + wt[i] - processes[i];
 
-		// Calculate total waiting time and total turn around time
-		total_wt = total_wt + wt[i];
+		// Calculate total turn around time
 		total_tat = total_tat + tat[i];
 	}
 	float t = (float) total_tat / (float) n;
@@ -61,8 +60,56 @@ void FCFSfindTurnAroundTime(int processes[], int n, int bt[]) {
 }
 
 
+int getIdxLCFSnonPre(int processes[], int n, int bt[]) {
+	int idx = -1;
+	int max = 0;
+
+	for (int i = 0; i < n; i++) {
+		if (processes[i] > max) {
+			max = processes[i];
+			idx = i;
+		}
+	}
+	return idx;
+}
+
+
 void LCFSfindTurnAroundTime(int processes[], int n, int bt[], int preemptive) {
-	float t = 0;
+	int wt[n], tat[n], total_wt = 0, total_tat = 0;
+	int leftovers[n], finish = 0;
+
+	for (int i = 0; i < n; i++) leftovers[i] = processes[i];
+
+	// waiting time for first process is the arrival time of the process
+	wt[0] = 0;
+	tat[0] = bt[0];
+	processes[0] = -1;
+
+	int last_idx = 0;
+
+	while (finish != 1) {
+		int idx = getIdxLCFSnonPre(processes, n, bt);
+
+		// calculating waiting time
+		wt[idx] = bt[last_idx] + wt[last_idx] + leftovers[last_idx] - processes[idx];
+
+		// calculating turnaround time by adding: bt[i] + wt[i]
+		tat[idx] = bt[idx] + wt[idx];
+
+		last_idx = idx;
+		processes[idx] = -1;
+		finish = 1;
+
+		for (int x = 0; x < n; x++) {
+			// check if all processes are handled, stop the while loop.
+			if (processes[x] != -1) finish = 0;
+		}
+	}
+	// Calculate total turn around time
+	for (int i = 0; i < n; i++) total_tat = total_tat + tat[i];
+
+	float t = (float) total_tat / (float) n;
+
 	if (preemptive == 1) printf("LCFS (P): mean turnaround = %.2f\n", t);
 	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", t);
 }
@@ -72,9 +119,8 @@ int main(int argc, char *argv[]) {
 	int fd1;  // Input file descriptor
 	int n_procs;  // number of processes
 	int *processes;  // arrival time list
-	char * proc;
 	int *burst_time;  // Burst time of all processes
-	int i = 0;
+	char *proc;
 	char inputLineContent[BUFFER_SIZE];
 	if (argc != 2) {
 		printf("Usage: %s <input file>\n", argv[0]);
@@ -95,7 +141,7 @@ int main(int argc, char *argv[]) {
 	// create the array of numbers from file
 	processes = malloc(n_procs * sizeof(int *));
 	burst_time = malloc(n_procs * sizeof(int *));
-	for (i = 0; i < n_procs; i++) {
+	for (int i = 0; i < n_procs; i++) {
 		readline(fd1, inputLineContent);
 		// input string line is: "a,b"
 		// Returns first token
