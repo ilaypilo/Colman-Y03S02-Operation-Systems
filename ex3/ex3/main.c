@@ -1,3 +1,4 @@
+#pragma once
 /*
 Operation Systems - Igor Rochlin
 27/04/19
@@ -38,7 +39,7 @@ int readline(int fd, char *buffer) {
 }
 
 
-void FCFSfindTurnAroundTime(int processes[], int n, int bt[]) {
+void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 
 	// waiting time for first process is the arrival time of the process
@@ -60,7 +61,7 @@ void FCFSfindTurnAroundTime(int processes[], int n, int bt[]) {
 }
 
 
-int getIdxLCFSnonPre(int processes[], int n, int bt[]) {
+int getIdxLCFSnonPre(const int processes[], int n, const int bt[]) {
 	int idx = -1;
 	int max = 0;
 
@@ -74,7 +75,7 @@ int getIdxLCFSnonPre(int processes[], int n, int bt[]) {
 }
 
 
-void LCFSfindTurnAroundTime(int processes[], int n, int bt[], int preemptive) {
+void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int preemptive) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 	int leftovers[n], finish = 0;
 
@@ -114,6 +115,11 @@ void LCFSfindTurnAroundTime(int processes[], int n, int bt[], int preemptive) {
 	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", t);
 }
 
+void swap(int*a,int*b) {
+	*a = *a ^ *b;
+	*b = *a ^ *b;
+	*a = *b ^ *a;
+}
 
 int main(int argc, char *argv[]) {
 	int fd1;  // Input file descriptor
@@ -135,12 +141,12 @@ int main(int argc, char *argv[]) {
 	}
 	// read the first line to indicates how many processes should be
 	readline(fd1, inputLineContent);
-	n_procs = inputLineContent[0] - '0';
+	n_procs = atoi(inputLineContent);
 	// printf("Number of processes from input file: '%s' are: %d\n", argv[1], n_procs);
 
 	// create the array of numbers from file
-	processes = malloc(n_procs * sizeof(int *));
-	burst_time = malloc(n_procs * sizeof(int *));
+	processes = (int *)malloc(n_procs * sizeof(int));
+	burst_time = (int *)malloc(n_procs * sizeof(int));
 	for (int i = 0; i < n_procs; i++) {
 		readline(fd1, inputLineContent);
 		// input string line is: "a,b"
@@ -153,9 +159,23 @@ int main(int argc, char *argv[]) {
 	}
 
 	close(fd1);  // config file is not needed anymore, closing it
-
+	printf("before sort\n");
+	for (int i = 0; i < n_procs; i++) {
+		printf("%d,%d\n", processes[i], burst_time[i]);
+	}
 	// TODO: need to sort the processes list by arrival time
-
+	for (int i = 0; i < n_procs; i++) {
+		for (int j = i+1; j < n_procs; j++) {
+			if (processes[i] > processes[j]) {
+				swap(&processes[i], &processes[j]);
+				swap(&burst_time[i], &burst_time[j]);
+			}
+		}
+	}
+	printf("after sort\n");
+	for (int i = 0; i < n_procs; i++) {
+		printf("%d,%d\n", processes[i], burst_time[i]);
+	}
 	// FCFS: mean turnaround = ?
 	FCFSfindTurnAroundTime(processes, n_procs, burst_time);
 
