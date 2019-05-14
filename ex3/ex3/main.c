@@ -91,10 +91,10 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 	int last_idx = 0;
 
 	while (finish != 1) {
-		int idx = getIdxLCFSnonPre(processes, n, bt);
+		int idx = getIdxLCFSnonPre(processes_cpy, n, bt);
 
 		// calculating waiting time
-		wt[idx] = bt[last_idx] + wt[last_idx] + leftovers[last_idx] - processes[idx];
+		wt[idx] = bt[last_idx] + wt[last_idx] + leftovers[last_idx] - processes_cpy[idx];
 
 		// calculating turnaround time by adding: bt[i] + wt[i]
 		tat[idx] = bt[idx] + wt[idx];
@@ -117,7 +117,7 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", t);
 }
 
-void swap(int*a,int*b) {
+void swap(int *a, int *b) {
 	*a = *a ^ *b;
 	*b = *a ^ *b;
 	*a = *b ^ *a;
@@ -147,8 +147,8 @@ int main(int argc, char *argv[]) {
 	// printf("Number of processes from input file: '%s' are: %d\n", argv[1], n_procs);
 
 	// create the array of numbers from file
-	processes = (int *)malloc(n_procs * sizeof(int));
-	burst_time = (int *)malloc(n_procs * sizeof(int));
+	processes = (int *) malloc(n_procs * sizeof(int));
+	burst_time = (int *) malloc(n_procs * sizeof(int));
 	for (int i = 0; i < n_procs; i++) {
 		readline(fd1, inputLineContent);
 		// input string line is: "a,b"
@@ -161,20 +161,20 @@ int main(int argc, char *argv[]) {
 	}
 
 	close(fd1);  // config file is not needed anymore, closing it
-	printf("before sort\n");
-	for (int i = 0; i < n_procs; i++) {
-		printf("%d,%d\n", processes[i], burst_time[i]);
-	}
+//	printf("before sort\n");
+//	for (int i = 0; i < n_procs; i++) {
+//		printf("%d,%d\n", processes[i], burst_time[i]);
+//	}
 	// TODO: need to sort the processes list by arrival time
 	for (int i = 0; i < n_procs; i++) {
-		for (int j = i+1; j < n_procs; j++) {
+		for (int j = i + 1; j < n_procs; j++) {
 			if (processes[i] > processes[j]) {
 				swap(&processes[i], &processes[j]);
 				swap(&burst_time[i], &burst_time[j]);
 			}
 		}
 	}
-	printf("after sort\n");
+//	printf("after sort\n");
 	for (int i = 0; i < n_procs; i++) {
 		printf("%d,%d\n", processes[i], burst_time[i]);
 	}
@@ -197,4 +197,3 @@ int main(int argc, char *argv[]) {
 	free(burst_time);
 	return 0;
 }
-
