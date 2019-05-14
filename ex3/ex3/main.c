@@ -78,13 +78,15 @@ int getIdxLCFSnonPre(const int processes[], int n, const int bt[]) {
 void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int preemptive) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 	int leftovers[n], finish = 0;
+	int processes_cpy[n];
 
+	for (int i = 0; i < n; i++) processes_cpy[i] = processes[i];
 	for (int i = 0; i < n; i++) leftovers[i] = processes[i];
 
 	// waiting time for first process is the arrival time of the process
 	wt[0] = 0;
 	tat[0] = bt[0];
-	processes[0] = -1;
+	processes_cpy[0] = -1;
 
 	int last_idx = 0;
 
@@ -98,12 +100,12 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 		tat[idx] = bt[idx] + wt[idx];
 
 		last_idx = idx;
-		processes[idx] = -1;
+		processes_cpy[idx] = -1;
 		finish = 1;
 
 		for (int x = 0; x < n; x++) {
 			// check if all processes are handled, stop the while loop.
-			if (processes[x] != -1) finish = 0;
+			if (processes_cpy[x] != -1) finish = 0;
 		}
 	}
 	// Calculate total turn around time
