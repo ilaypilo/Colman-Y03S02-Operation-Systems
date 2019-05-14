@@ -50,3 +50,17 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# visual studio
+.vs/
+*/.vs/
+*.sou
+*.db
+.*ipch
+*.tlog
+.*log
+Debug/
+Release/
+*.logr
+readme/
+obj/
