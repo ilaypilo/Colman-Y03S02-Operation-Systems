@@ -12,8 +12,16 @@ Ilay Pilosof 304961519 עילי פילוסוף
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #define BUFFER_SIZE 1024
+
+
+struct Process {
+	int pid; // Process ID
+	int bt; // Burst Time
+	int art; // Arrival Time
+};
 
 
 void swap(int *a, int *b) {
@@ -47,7 +55,6 @@ int readline(int fd, char *buffer) {
 }
 
 
-// Function to calculate turn around time
 void findTurnAroundTime(int processes[], int n, int bt[], int wt[], int tat[]) {
 	// calculating turnaround time by adding
 	// bt[i] + wt[i]
@@ -77,7 +84,7 @@ void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 }
 
 
-int getIdxLCFSnonPre(const int processes[], int n, const int bt[]) {
+int getIdxLCFSnonPreemptive(const int processes[], int n, const int bt[]) {
 	int idx = -1;
 	int max = 0;
 
@@ -107,7 +114,7 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 	int last_idx = 0;
 
 	while (finish != 1) {
-		int idx = getIdxLCFSnonPre(processes_cpy, n, bt);
+		int idx = getIdxLCFSnonPreemptive(processes_cpy, n, bt);
 
 		// calculating waiting time
 		wt[idx] = bt[last_idx] + wt[last_idx] + r_queue[last_idx] - processes_cpy[idx];
@@ -134,8 +141,6 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 }
 
 
-// Function to find the waiting time for all
-// processes
 void RRfindWaitingTime(int processes[], int n, int bt[], int wt[], int quantum) {
 	// Make a copy of burst times bt[] to store remaining
 	// burst times.
@@ -212,8 +217,105 @@ void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quan
 
 	}
 
-
 	printf("RR: mean turnaround = %.2f\n", (float) total_tat / (float) n);
+}
+
+
+void SJFfindWaitingTime(struct Process proc[], int n, int wt[]) {
+	int rt[n];
+
+	// Copy the burst time into rt[]
+	for (int i = 0; i < n; i++)
+		rt[i] = proc[i].bt;
+
+	int complete = 0, t = 0, minm = INT_MAX;
+	int shortest = 0, finish_time;
+	int check = 0;
+
+	// Process until all processes gets
+	// completed
+	while (complete != n) {
+
+		// Find process with minimum
+		// remaining time among the
+		// processes that arrives till the
+		// current time`
+		for (int j = 0; j < n; j++) {
+			if ((proc[j].art <= t) &&
+				(rt[j] < minm) && rt[j] > 0) {
+				minm = rt[j];
+				shortest = j;
+				check = 1;
+			}
+		}
+
+		if (check == 0) {
+			t++;
+			continue;
+		}
+
+		// Reduce remaining time by one
+		rt[shortest]--;
+
+		// Update minimum
+		minm = rt[shortest];
+		if (minm == 0)
+			minm = INT_MAX;
+
+		// If a process gets completely
+		// executed
+		if (rt[shortest] == 0) {
+
+			// Increment complete
+			complete++;
+			check = 0;
+
+			// Find finish time of current
+			// process
+			finish_time = t + 1;
+
+			// Calculate waiting time
+			wt[shortest] = finish_time -
+						   proc[shortest].bt -
+						   proc[shortest].art;
+
+			if (wt[shortest] < 0)
+				wt[shortest] = 0;
+		}
+		// Increment time
+		t++;
+	}
+}
+
+
+void SJFfindTurnAroundTime(struct Process proc[], int n) {
+	int wt[n], tat[n], total_wt = 0,
+			total_tat = 0;
+
+	// Function to find waiting time of all
+	// processes
+	SJFfindWaitingTime(proc, n, wt);
+
+	// Function to find turn around time for
+	// all processes
+	// calculating turnaround time by adding
+	// bt[i] + wt[i]
+	for (int i = 0; i < n; i++)
+		tat[i] = proc[i].bt + wt[i];
+
+	// Display processes along with all details
+//	printf("Processes\tBurst time\tWaiting time\tTurn around time\n");
+
+
+	// Calculate total waiting time and
+	// total turnaround time
+	for (int i = 0; i < n; i++) {
+		total_wt = total_wt + wt[i];
+		total_tat = total_tat + tat[i];
+//		printf("%d \t\t %d \t\t %d \t\t %d\n", proc[i].pid, proc[i].bt, wt[i], tat[i]);
+	}
+
+	printf("SJF: mean turnaround = %.2f\n", (float) total_tat / (float) n);
 }
 
 
@@ -222,6 +324,7 @@ int main(int argc, char *argv[]) {
 	int n_procs;  // number of processes
 	int *processes;  // arrival time list
 	int *burst_time;  // Burst time of all processes
+	struct Process *procs;
 	char *proc;
 	char inputLineContent[BUFFER_SIZE];
 	if (argc != 2) {
@@ -272,6 +375,14 @@ int main(int argc, char *argv[]) {
 //	for (int i = 0; i < n_procs; i++) {
 //		printf("%d,%d\n", processes[i], burst_time[i]);
 //	}
+
+	procs = (struct Process *) malloc(n_procs * sizeof(struct Process));
+	for (int i = 0; i < n_procs; i++) {
+		procs[i].pid = i;
+		procs[i].art = processes[i];
+		procs[i].bt = burst_time[i];
+	}
+
 	// FCFS: mean turnaround = ?
 	FCFSfindTurnAroundTime(processes, n_procs, burst_time);
 
@@ -284,9 +395,10 @@ int main(int argc, char *argv[]) {
 	// RR: mean turnaround = ?
 	RRfindTurnAroundTime(processes, n_procs, burst_time, 2);
 
-//	// SJF: mean turnaround = ?
-//	SJFfindTurnAroundTime(processes, n_procs, burst_time);
+	// SJF: mean turnaround = ?
+	SJFfindTurnAroundTime(procs, n_procs);
 
+	free(procs);
 	free(processes);
 	free(burst_time);
 	return 0;
