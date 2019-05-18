@@ -15,6 +15,14 @@ Ilay Pilosof 304961519 עילי פילוסוף
 
 #define BUFFER_SIZE 1024
 
+
+void swap(int *a, int *b) {
+	*a = *a ^ *b;
+	*b = *a ^ *b;
+	*a = *b ^ *a;
+}
+
+
 int readline(int fd, char *buffer) {
 	int res;
 	int count = 0;
@@ -39,6 +47,15 @@ int readline(int fd, char *buffer) {
 }
 
 
+// Function to calculate turn around time
+void findTurnAroundTime(int processes[], int n, int bt[], int wt[], int tat[]) {
+	// calculating turnaround time by adding
+	// bt[i] + wt[i]
+	for (int i = 0; i < n; i++)
+		tat[i] = bt[i] + wt[i] - processes[i];
+}
+
+
 void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 
@@ -50,9 +67,8 @@ void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 		wt[i] = bt[i - 1] + wt[i - 1];
 
 	// calculating turnaround time by adding: bt[i] + wt[i]
+	findTurnAroundTime(processes, n, bt, wt, tat);
 	for (int i = 0; i < n; i++) {
-		tat[i] = bt[i] + wt[i] - processes[i];
-
 		// Calculate total turn around time
 		total_tat = total_tat + tat[i];
 	}
@@ -77,11 +93,11 @@ int getIdxLCFSnonPre(const int processes[], int n, const int bt[]) {
 
 void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int preemptive) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
-	int leftovers[n], finish = 0;
+	int r_queue[n], finish = 0;
 	int processes_cpy[n];
 
 	for (int i = 0; i < n; i++) processes_cpy[i] = processes[i];
-	for (int i = 0; i < n; i++) leftovers[i] = processes[i];
+	for (int i = 0; i < n; i++) r_queue[i] = processes[i];
 
 	// waiting time for first process is the arrival time of the process
 	wt[0] = 0;
@@ -94,7 +110,7 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 		int idx = getIdxLCFSnonPre(processes_cpy, n, bt);
 
 		// calculating waiting time
-		wt[idx] = bt[last_idx] + wt[last_idx] + leftovers[last_idx] - processes_cpy[idx];
+		wt[idx] = bt[last_idx] + wt[last_idx] + r_queue[last_idx] - processes_cpy[idx];
 
 		// calculating turnaround time by adding: bt[i] + wt[i]
 		tat[idx] = bt[idx] + wt[idx];
@@ -117,11 +133,89 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", t);
 }
 
-void swap(int *a, int *b) {
-	*a = *a ^ *b;
-	*b = *a ^ *b;
-	*a = *b ^ *a;
+
+// Function to find the waiting time for all
+// processes
+void RRfindWaitingTime(int processes[], int n, int bt[], int wt[], int quantum) {
+	// Make a copy of burst times bt[] to store remaining
+	// burst times.
+	int rem_bt[n];
+	for (int i = 0; i < n; i++)
+		rem_bt[i] = bt[i];
+
+	int t = 0; // Current time
+
+	// Keep traversing processes in round robin manner
+	// until all of them are not done.
+	while (1) {
+		int done = 1;
+
+		// Traverse all processes one by one repeatedly
+		for (int i = 0; i < n; i++) {
+			// If burst time of a process is greater than 0
+			// then only need to process further
+			if (rem_bt[i] > 0) {
+				done = 0; // There is a pending process
+
+				if (rem_bt[i] > quantum) {
+					// Increase the value of t i.e. shows
+					// how much time a process has been processed
+					t += quantum;
+
+					// Decrease the burst_time of current process
+					// by quantum
+					rem_bt[i] -= quantum;
+				}
+
+					// If burst time is smaller than or equal to
+					// quantum. Last cycle for this process
+				else {
+					// Increase the value of t i.e. shows
+					// how much time a process has been processed
+					t = t + rem_bt[i];
+
+					// Waiting time is current time minus time
+					// used by this process
+					wt[i] = t - bt[i];
+
+					// As the process gets fully executed
+					// make its remaining burst time = 0
+					rem_bt[i] = 0;
+				}
+			}
+		}
+
+		// If all processes are done
+		if (done == 1)
+			break;
+	}
 }
+
+
+void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quantum) {
+	int wt[n], tat[n], total_wt = 0, total_tat = 0;
+
+	// Function to find waiting time of all processes
+	RRfindWaitingTime(processes, n, bt, wt, quantum);
+
+	// Function to find turn around time for all processes
+	findTurnAroundTime(processes, n, bt, wt, tat);
+
+	// Display processes along with all details
+//	printf("Processes\tBurst time\tWaiting time\tTurn around time\n");
+
+	// Calculate total waiting time and total turn around time
+	for (int i = 0; i < n; i++) {
+		total_wt = total_wt + wt[i];
+		total_tat = total_tat + tat[i];
+//		printf("%d \t\t %d \t\t %d \t\t %d\n", i + 1, bt[i], wt[i], tat[i]);
+
+	}
+
+
+	printf("RR: mean turnaround = %.2f\n", (float) total_tat / (float) n);
+}
+
 
 int main(int argc, char *argv[]) {
 	int fd1;  // Input file descriptor
@@ -175,9 +269,9 @@ int main(int argc, char *argv[]) {
 		}
 	}
 //	printf("after sort\n");
-	for (int i = 0; i < n_procs; i++) {
-		printf("%d,%d\n", processes[i], burst_time[i]);
-	}
+//	for (int i = 0; i < n_procs; i++) {
+//		printf("%d,%d\n", processes[i], burst_time[i]);
+//	}
 	// FCFS: mean turnaround = ?
 	FCFSfindTurnAroundTime(processes, n_procs, burst_time);
 
@@ -185,10 +279,10 @@ int main(int argc, char *argv[]) {
 	LCFSfindTurnAroundTime(processes, n_procs, burst_time, 0);
 
 	// LCFS (P): mean turnaround = ?
-	LCFSfindTurnAroundTime(processes, n_procs, burst_time, 1);
+//	LCFSfindTurnAroundTime(processes, n_procs, burst_time, 1);
 
-//	// RR: mean turnaround = ?
-//	RRfindTurnAroundTime(processes, n_procs, burst_time);
+	// RR: mean turnaround = ?
+	RRfindTurnAroundTime(processes, n_procs, burst_time, 2);
 
 //	// SJF: mean turnaround = ?
 //	SJFfindTurnAroundTime(processes, n_procs, burst_time);
