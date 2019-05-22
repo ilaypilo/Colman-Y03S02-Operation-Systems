@@ -54,28 +54,36 @@ int readline(int fd, char *buffer) {
 }
 
 
-void findTurnAroundTime(const int processes[], int n, const int bt[], const int wt[], int tat[]) {
+void FCFSfindTat(const int processes[], const int n, const int bt[], const int wt[], int tat[]) {
 	// calculating turnaround time by adding
 	// bt[i] + wt[i]
 	for (int i = 0; i < n; i++)
-		tat[i] = bt[i] + wt[i] - processes[i];
+		tat[i] = bt[i] + wt[i];
+}
+
+
+void FCFSfindWaitingTime(const int processes[], const int n, const int bt[], int wt[]) {
+	// waiting time for first process is 0
+	wt[0] = 0;
+
+	// calculating waiting time
+	for (int i = 1; i < n; i++)
+		wt[i] = bt[i - 1] + wt[i - 1];
 }
 
 
 void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 
-	// waiting time for first process is the arrival time of the process
-	wt[0] = processes[0];
+	//Function to find waiting time of all processes
+	FCFSfindWaitingTime(processes, n, bt, wt);
 
-	// calculating waiting time
-	for (int i = 1; i < n; i++)
-		wt[i] = bt[i - 1] + wt[i - 1];
+	//Function to find turn around time for all processes
+	FCFSfindTat(processes, n, bt, wt, tat);
 
-	// calculating turnaround time by adding: bt[i] + wt[i]
-	findTurnAroundTime(processes, n, bt, wt, tat);
+	// Calculate total waiting time and total turn around time
 	for (int i = 0; i < n; i++) {
-		// Calculate total turn around time
+		total_wt = total_wt + wt[i];
 		total_tat = total_tat + tat[i];
 	}
 	float current_time = (float) total_tat / (float) n;
@@ -96,6 +104,15 @@ int getIdxLCFSnonPreemptive(const int processes[], int n, const int bt[]) {
 	return idx;
 }
 
+void LCFSfindWaitingTime(const int processes[], const int n, const int bt[], int wt[]) {
+	// waiting time for first process is 0
+	wt[0] = 0;
+
+	// calculating waiting time
+	for (int i = 1; i < n; i++)
+		wt[i] = bt[i - 1] + wt[i - 1];
+}
+
 
 void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int preemptive) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
@@ -106,22 +123,18 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 	for (int i = 0; i < n; i++) r_queue[i] = processes[i];
 
 	// waiting time for first process is the arrival time of the process
-	wt[0] = 0;
-	tat[0] = bt[0];
+	tat[0] = 0;
 	processes_cpy[0] = -1;
-
-	int last_idx = 0;
 
 	while (finish != 1) {
 		int idx = getIdxLCFSnonPreemptive(processes_cpy, n, bt);
 
 		// calculating waiting time
-		wt[idx] = bt[last_idx] + wt[last_idx] + r_queue[last_idx] - processes_cpy[idx];
+		LCFSfindWaitingTime(processes, n, bt, wt);
 
 		// calculating turnaround time by adding: bt[i] + wt[i]
 		tat[idx] = bt[idx] + wt[idx];
 
-		last_idx = idx;
 		processes_cpy[idx] = -1;
 		finish = 1;
 
@@ -196,6 +209,14 @@ void RRfindWaitingTime(const int processes[], int n, const int bt[], int wt[], i
 }
 
 
+void RRfindTat(const int processes[], const int n, const int bt[], const int wt[], int tat[]) {
+	// calculating turnaround time by adding
+	// bt[i] + wt[i]
+	for (int i = 0; i < n; i++)
+		tat[i] = bt[i] + wt[i];
+}
+
+
 void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quantum) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 
@@ -203,7 +224,7 @@ void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quan
 	RRfindWaitingTime(processes, n, bt, wt, quantum);
 
 	// Function to find turn around time for all processes
-	findTurnAroundTime(processes, n, bt, wt, tat);
+	RRfindTat(processes, n, bt, wt, tat);
 
 	// Display processes along with all details
 //	printf("Processes\tBurst time\tWaiting time\tTurn around time\n");
@@ -234,7 +255,7 @@ void SJFfindWaitingTime(Process process_list[], int n, int wt[]) {
 	// FIXED: complete_process should include process with bt=0
 	// calculate process with bt=0
 	for (int i = 0; i < n; i++) {
-		if (0 == process_list[i].bt){
+		if (0 == process_list[i].bt) {
 			++complete_process;
 		}
 	}
@@ -249,10 +270,10 @@ void SJFfindWaitingTime(Process process_list[], int n, int wt[]) {
 		// current time`
 		for (int j = 0; j < n; j++) {
 			if (
-				process_list[j].art <= current_time &&
-			 	remaining_time[j] < min_bt_left &&
-				remaining_time[j] > 0
-			) {
+					process_list[j].art <= current_time &&
+					remaining_time[j] < min_bt_left &&
+					remaining_time[j] > 0
+					) {
 				min_bt_left = remaining_time[j];
 				shortest_job_index = j;
 				need_to_execute = 1;
@@ -273,7 +294,7 @@ void SJFfindWaitingTime(Process process_list[], int n, int wt[]) {
 		if (min_bt_left == 0) {
 			min_bt_left = INT_MAX;
 		}
-			
+
 
 		// If a process gets completely
 		// executed
@@ -289,8 +310,8 @@ void SJFfindWaitingTime(Process process_list[], int n, int wt[]) {
 
 			// Calculate waiting time
 			wt[shortest_job_index] = finish_time -
-						   process_list[shortest_job_index].bt -
-						   process_list[shortest_job_index].art;
+									 process_list[shortest_job_index].bt -
+									 process_list[shortest_job_index].art;
 
 			if (wt[shortest_job_index] < 0)
 				wt[shortest_job_index] = 0;
@@ -302,8 +323,7 @@ void SJFfindWaitingTime(Process process_list[], int n, int wt[]) {
 
 
 void SJFfindTurnAroundTime(Process process_list[], int n) {
-	int wt[n], tat[n], total_wt = 0,
-			total_tat = 0;
+	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 
 	// Function to find waiting time of all
 	// processes
@@ -337,6 +357,7 @@ int main(int argc, char *argv[]) {
 	int n_procs;  // number of processes
 	int *processes;  // arrival time list
 	int *burst_time;  // Burst time of all processes
+	int temp;
 	Process *procs;
 	char *process_list;
 	char inputLineContent[BUFFER_SIZE];
@@ -354,6 +375,7 @@ int main(int argc, char *argv[]) {
 	// read the first line to indicates how many processes should be
 	readline(fd1, inputLineContent);
 	n_procs = atoi(inputLineContent);
+	temp = n_procs;
 	// printf("Number of processes from input file: '%s' are: %d\n", argv[1], n_procs);
 
 	// create the array of numbers from file
@@ -367,6 +389,10 @@ int main(int argc, char *argv[]) {
 		processes[i] = atoi(process_list);
 		process_list = strtok(NULL, ",");
 		burst_time[i] = atoi(process_list);
+		if (burst_time[i] == 0) {
+			temp--;
+			processes[i] = INT_MAX;
+		}
 		// printf("%d burst-time of %d\n", processes[i], burst_time[i]);
 	}
 
@@ -375,7 +401,6 @@ int main(int argc, char *argv[]) {
 //	for (int i = 0; i < n_procs; i++) {
 //		printf("%d,%d\n", processes[i], burst_time[i]);
 //	}
-	// TODO: need to sort the processes list by arrival time
 	for (int i = 0; i < n_procs; i++) {
 		for (int j = i + 1; j < n_procs; j++) {
 			if (processes[i] > processes[j]) {
@@ -384,6 +409,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+	n_procs = temp;
 //	printf("after sort\n");
 //	for (int i = 0; i < n_procs; i++) {
 //		printf("%d,%d\n", processes[i], burst_time[i]);
