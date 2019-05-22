@@ -78,8 +78,8 @@ void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 		// Calculate total turn around time
 		total_tat = total_tat + tat[i];
 	}
-	float t = (float) total_tat / (float) n;
-	printf("FCFS: mean turnaround = %.2f\n", t);
+	float current_time = (float) total_tat / (float) n;
+	printf("FCFS: mean turnaround = %.2f\n", current_time);
 }
 
 
@@ -126,17 +126,17 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 		finish = 1;
 
 		for (int x = 0; x < n; x++) {
-			// check if all processes are handled, stop the while loop.
+			// need_to_execute if all processes are handled, stop the while loop.
 			if (processes_cpy[x] != -1) finish = 0;
 		}
 	}
 	// Calculate total turn around time
 	for (int i = 0; i < n; i++) total_tat = total_tat + tat[i];
 
-	float t = (float) total_tat / (float) n;
+	float current_time = (float) total_tat / (float) n;
 
-	if (preemptive == 1) printf("LCFS (P): mean turnaround = %.2f\n", t);
-	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", t);
+	if (preemptive == 1) printf("LCFS (P): mean turnaround = %.2f\n", current_time);
+	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", current_time);
 }
 
 
@@ -147,7 +147,7 @@ void RRfindWaitingTime(const int processes[], int n, const int bt[], int wt[], i
 	for (int i = 0; i < n; i++)
 		rem_bt[i] = bt[i];
 
-	int t = 0; // Current time
+	int current_time = 0; // Current time
 
 	// Keep traversing processes in round robin manner
 	// until all of them are not done.
@@ -162,9 +162,9 @@ void RRfindWaitingTime(const int processes[], int n, const int bt[], int wt[], i
 				done = 0; // There is a pending process
 
 				if (rem_bt[i] > quantum) {
-					// Increase the value of t i.e. shows
+					// Increase the value of current_time i.e. shows
 					// how much time a process has been processed
-					t += quantum;
+					current_time += quantum;
 
 					// Decrease the burst_time of current process
 					// by quantum
@@ -174,13 +174,13 @@ void RRfindWaitingTime(const int processes[], int n, const int bt[], int wt[], i
 					// If burst time is smaller than or equal to
 					// quantum. Last cycle for this process
 				else {
-					// Increase the value of t i.e. shows
+					// Increase the value of current_time i.e. shows
 					// how much time a process has been processed
-					t = t + rem_bt[i];
+					current_time = current_time + rem_bt[i];
 
 					// Waiting time is current time minus time
 					// used by this process
-					wt[i] = t - bt[i];
+					wt[i] = current_time - bt[i];
 
 					// As the process gets fully executed
 					// make its remaining burst time = 0
@@ -212,7 +212,7 @@ void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quan
 	for (int i = 0; i < n; i++) {
 		total_wt = total_wt + wt[i];
 		total_tat = total_tat + tat[i];
-//		printf("%d \t\t %d \t\t %d \t\t %d\n", i + 1, bt[i], wt[i], tat[i]);
+//		printf("%d \current_time\current_time %d \current_time\current_time %d \current_time\current_time %d\n", i + 1, bt[i], wt[i], tat[i]);
 
 	}
 
@@ -220,87 +220,101 @@ void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quan
 }
 
 
-void SJFfindWaitingTime(Process proc[], int n, int wt[]) {
-	int rt[n];
+void SJFfindWaitingTime(Process process_list[], int n, int wt[]) {
+	int remaining_time[n];
 
-	// Copy the burst time into rt[]
+	// Copy the burst time into remaining_time[]
 	for (int i = 0; i < n; i++)
-		rt[i] = proc[i].bt;
+		remaining_time[i] = process_list[i].bt;
 
-	int complete = 0, t = 0, minm = INT_MAX;
-	int shortest = 0, finish_time;
-	int check = 0;
+	int complete_process = 0, current_time = 0, min_bt_left = INT_MAX;
+	int shortest_job_index = 0, finish_time;
+	int need_to_execute = 0;
+
+	// FIXED: complete_process should include process with bt=0
+	// calculate process with bt=0
+	for (int i = 0; i < n; i++) {
+		if (0 == process_list[i].bt){
+			++complete_process;
+		}
+	}
 
 	// Process until all processes gets
-	// completed
-	while (complete != n) {
+	// complete_processd
+	while (complete_process != n) {
 
 		// Find process with minimum
 		// remaining time among the
 		// processes that arrives till the
 		// current time`
 		for (int j = 0; j < n; j++) {
-			if ((proc[j].art <= t) &&
-				(rt[j] < minm) && rt[j] > 0) {
-				minm = rt[j];
-				shortest = j;
-				check = 1;
+			if (
+				process_list[j].art <= current_time &&
+			 	remaining_time[j] < min_bt_left &&
+				remaining_time[j] > 0
+			) {
+				min_bt_left = remaining_time[j];
+				shortest_job_index = j;
+				need_to_execute = 1;
 			}
 		}
 
-		if (check == 0) {
-			t++;
+		if (0 == need_to_execute) {
+			++current_time;
 			continue;
 		}
 
 		// Reduce remaining time by one
-		rt[shortest]--;
+		--remaining_time[shortest_job_index];
 
 		// Update minimum
-		minm = rt[shortest];
-		if (minm == 0)
-			minm = INT_MAX;
+		min_bt_left = remaining_time[shortest_job_index];
+		// if job completed, reset the min count
+		if (min_bt_left == 0) {
+			min_bt_left = INT_MAX;
+		}
+			
 
 		// If a process gets completely
 		// executed
-		if (rt[shortest] == 0) {
+		if (remaining_time[shortest_job_index] == 0) {
 
-			// Increment complete
-			complete++;
-			check = 0;
+			// Increment complete_process
+			++complete_process;
+			need_to_execute = 0;
 
 			// Find finish time of current
 			// process
-			finish_time = t + 1;
+			finish_time = current_time + 1;
 
 			// Calculate waiting time
-			wt[shortest] = finish_time -
-						   proc[shortest].bt -
-						   proc[shortest].art;
+			wt[shortest_job_index] = finish_time -
+						   process_list[shortest_job_index].bt -
+						   process_list[shortest_job_index].art;
 
-			if (wt[shortest] < 0)
-				wt[shortest] = 0;
+			if (wt[shortest_job_index] < 0)
+				wt[shortest_job_index] = 0;
 		}
 		// Increment time
-		t++;
+		current_time++;
 	}
 }
 
 
-void SJFfindTurnAroundTime(Process proc[], int n) {
+void SJFfindTurnAroundTime(Process process_list[], int n) {
 	int wt[n], tat[n], total_wt = 0,
 			total_tat = 0;
 
 	// Function to find waiting time of all
 	// processes
-	SJFfindWaitingTime(proc, n, wt);
+	SJFfindWaitingTime(process_list, n, wt);
 
 	// Function to find turn around time for
 	// all processes
 	// calculating turnaround time by adding
 	// bt[i] + wt[i]
 	for (int i = 0; i < n; i++)
-		tat[i] = proc[i].bt + wt[i];
+		tat[i] = process_list[i].bt + wt[i];
 
 	// Display processes along with all details
 //	printf("Processes\tBurst time\tWaiting time\tTurn around time\n");
@@ -311,7 +325,7 @@ void SJFfindTurnAroundTime(Process proc[], int n) {
 	for (int i = 0; i < n; i++) {
 		total_wt = total_wt + wt[i];
 		total_tat = total_tat + tat[i];
-//		printf("%d \t\t %d \t\t %d \t\t %d\n", proc[i].pid, proc[i].bt, wt[i], tat[i]);
+//		printf("%d \current_time\current_time %d \current_time\current_time %d \current_time\current_time %d\n", process_list[i].pid, process_list[i].bt, wt[i], tat[i]);
 	}
 
 	printf("SJF: mean turnaround = %.2f\n", (float) total_tat / (float) n);
@@ -324,7 +338,7 @@ int main(int argc, char *argv[]) {
 	int *processes;  // arrival time list
 	int *burst_time;  // Burst time of all processes
 	Process *procs;
-	char *proc;
+	char *process_list;
 	char inputLineContent[BUFFER_SIZE];
 	if (argc != 2) {
 		printf("Usage: %s <input file>\n", argv[0]);
@@ -349,10 +363,10 @@ int main(int argc, char *argv[]) {
 		readline(fd1, inputLineContent);
 		// input string line is: "a,b"
 		// Returns first token
-		proc = strtok(inputLineContent, ",");
-		processes[i] = atoi(proc);
-		proc = strtok(NULL, ",");
-		burst_time[i] = atoi(proc);
+		process_list = strtok(inputLineContent, ",");
+		processes[i] = atoi(process_list);
+		process_list = strtok(NULL, ",");
+		burst_time[i] = atoi(process_list);
 		// printf("%d burst-time of %d\n", processes[i], burst_time[i]);
 	}
 
