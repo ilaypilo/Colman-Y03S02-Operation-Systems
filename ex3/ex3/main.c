@@ -1,4 +1,3 @@
-#pragma once
 /*
 Operation Systems - Igor Rochlin
 27/04/19
@@ -17,11 +16,11 @@ Ilay Pilosof 304961519 עילי פילוסוף
 #define BUFFER_SIZE 1024
 
 
-struct Process {
+typedef struct _Process {
 	int pid; // Process ID
 	int bt; // Burst Time
 	int art; // Arrival Time
-};
+} Process;
 
 
 void swap(int *a, int *b) {
@@ -55,7 +54,7 @@ int readline(int fd, char *buffer) {
 }
 
 
-void findTurnAroundTime(int processes[], int n, int bt[], int wt[], int tat[]) {
+void findTurnAroundTime(const int processes[], int n, const int bt[], const int wt[], int tat[]) {
 	// calculating turnaround time by adding
 	// bt[i] + wt[i]
 	for (int i = 0; i < n; i++)
@@ -141,7 +140,7 @@ void LCFSfindTurnAroundTime(const int processes[], int n, const int bt[], int pr
 }
 
 
-void RRfindWaitingTime(int processes[], int n, int bt[], int wt[], int quantum) {
+void RRfindWaitingTime(const int processes[], int n, const int bt[], int wt[], int quantum) {
 	// Make a copy of burst times bt[] to store remaining
 	// burst times.
 	int rem_bt[n];
@@ -221,7 +220,7 @@ void RRfindTurnAroundTime(const int processes[], int n, const int bt[], int quan
 }
 
 
-void SJFfindWaitingTime(struct Process proc[], int n, int wt[]) {
+void SJFfindWaitingTime(Process proc[], int n, int wt[]) {
 	int rt[n];
 
 	// Copy the burst time into rt[]
@@ -288,7 +287,7 @@ void SJFfindWaitingTime(struct Process proc[], int n, int wt[]) {
 }
 
 
-void SJFfindTurnAroundTime(struct Process proc[], int n) {
+void SJFfindTurnAroundTime(Process proc[], int n) {
 	int wt[n], tat[n], total_wt = 0,
 			total_tat = 0;
 
@@ -324,7 +323,7 @@ int main(int argc, char *argv[]) {
 	int n_procs;  // number of processes
 	int *processes;  // arrival time list
 	int *burst_time;  // Burst time of all processes
-	struct Process *procs;
+	Process *procs;
 	char *proc;
 	char inputLineContent[BUFFER_SIZE];
 	if (argc != 2) {
@@ -376,7 +375,7 @@ int main(int argc, char *argv[]) {
 //		printf("%d,%d\n", processes[i], burst_time[i]);
 //	}
 
-	procs = (struct Process *) malloc(n_procs * sizeof(struct Process));
+	procs = (Process *) malloc(n_procs * sizeof(Process));
 	for (int i = 0; i < n_procs; i++) {
 		procs[i].pid = i;
 		procs[i].art = processes[i];
