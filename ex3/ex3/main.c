@@ -175,7 +175,7 @@ void LCFSfindWaitingTime(const int processes[], const int n, const int bt[], int
 }
 
 
-void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, const int bt[], int preemptive) {
+void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, const int bt[]) {
 	int wt[n], tat[n], total_wt = 0, total_tat = 0;
 	// Make a copy of burst times bt[] to store remaining
 	// burst times.
@@ -183,7 +183,7 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 	for (int i = 0; i < n; i++)
 		rem_bt[i] = bt[i];
 
-	int current_time = 0; // Current time
+	int current_time = processes[0] - 1; // Current time
 
 	// Keep traversing processes until all of them are done.
 	while (1) {
@@ -193,7 +193,7 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 		for (int i = n - 1; i >= 0; i--) {
 			// go over all processes, if arrival time is equal to current time, add process to queue.
 			if (processes[i] == current_time) {
-				if (isExists(queue, i)) enqueue(queue, i);
+				enqueue(queue, i);
 			}
 		}
 
@@ -211,11 +211,107 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 		int i = dequeue(queue);
 //		printf("current process index is: %d\n", i);
 
-		if (preemptive == 0) {
-			rem_bt[i] = 0;
+		rem_bt[i] = 0;
 
-			// calculating waiting time
-			LCFSfindWaitingTime(processes, n, bt, wt);
+		// calculating waiting time
+		LCFSfindWaitingTime(processes, n, bt, wt);
+
+		for (int x = n - 1; x >= 0; x--) {
+			if (rem_bt[x] == 0) continue;
+			// go over all processes, if arrival time is equal to current time, add process to queue.
+			if (processes[x] >= current_time && processes[x] < current_time + bt[i]) {
+				if (isExists(queue, x)) enqueue(queue, x);
+			}
+		}
+		current_time += bt[i] - 1;
+//			printf("Process %d is completed\n", processes[i]);
+
+		// calculating turnaround time by adding: bt[i] + wt[i]
+		tat[i] = current_time + 1 - processes[i];
+//			printf("process %d tat is: %d\n", processes[i], tat[i]);
+	}
+	// Calculate total turn around time
+	for (int i = 0; i < n; i++) total_tat = total_tat + tat[i];
+
+	float _current_time = (float) total_tat / (float) n;
+
+	printf("LCFS (NP): mean turnaround = %.2f\n", _current_time);
+	// clean the queue if needed
+	while (!isEmpty(queue)) dequeue(queue);
+}
+
+
+void LCFSfindTurnAroundTimePreemptive(struct Queue *queue, const int processes[], int n, const int bt[]) {
+	int wt[n], tat[n], total_wt = 0, total_tat = 0;
+	// Make a copy of burst times bt[] to store remaining
+	// burst times.
+	int rem_bt[n];
+	for (int i = 0; i < n; i++)
+		rem_bt[i] = bt[i];
+
+	int current_time = processes[0] - 1; // Current time
+
+	// Keep traversing processes until all of them are done.
+	while (1) {
+		int done = 1;
+		current_time++;
+
+		for (int i = n - 1; i >= 0; i--) {
+			// go over all processes, if arrival time is equal to current time, add process to queue.
+			if (processes[i] == current_time) {
+				if (rem_bt[i] != 0) enqueue(queue, i);
+			}
+		}
+
+		for (int j = 0; j < n; j++) {
+			if (rem_bt[j] != 0) done = 0;
+		}
+
+		// If all processes are done
+		if (isEmpty(queue)) {
+			if (done == 1) break;
+			continue;
+		}
+//		printf("current_time is: %d\n", current_time);
+
+		int i = dequeue(queue);
+//		printf("current process index is: %d\n", i);
+
+		//preemptive
+		int minus = 0;
+
+		int arrive = -1;
+
+		// check if new process arrive
+		for (int t = 0; t < bt[i]; t++) {
+			for (int x = 0; x < n; x++) {
+				if (rem_bt[x] == 0) continue;
+				// go over all processes, if arrival time is equal to current time, add process to queue.
+				if (processes[x] > current_time && processes[x] <= current_time + t) {
+					arrive = x;
+					minus = t;
+					break;
+				}
+			}
+			if (minus != 0) {
+				break;
+			}
+		}
+
+		if (arrive != -1 && rem_bt[i] > minus) {
+			// means that some process arrive
+			rem_bt[i] -= minus;
+			for (int x = n - 1; x >= 0; x--) {
+				// go over all processes, if arrival time is equal to current time, add process to queue.
+				if (processes[x] >= current_time && processes[x] < current_time + rem_bt[i]) {
+					if (isExists(queue, x)) enqueue(queue, x);
+				}
+			}
+			if (rem_bt[i] != 0) enqueue(queue, i);
+			current_time += minus - 1;
+		} else {
+			rem_bt[i] = 0;
+//			printf("Process %d is completed\n", processes[i]);
 
 			for (int x = n - 1; x >= 0; x--) {
 				// go over all processes, if arrival time is equal to current time, add process to queue.
@@ -224,58 +320,8 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 				}
 			}
 			current_time += bt[i] - 1;
-//			printf("Process index %d is completed\n", i);
-
-			// calculating turnaround time by adding: bt[i] + wt[i]
-			tat[i] = current_time + 1 - processes[i];
+			tat[i] = current_time - processes[i];
 //			printf("process %d tat is: %d\n", processes[i], tat[i]);
-
-		} else {
-			//preemptive
-			int minus = 0;
-
-			int arrive = -1;
-
-			// check if new process arrive
-			for (int t = 0; t < bt[i]; t++) {
-				for (int x = 0; x < n; x++) {
-					// go over all processes, if arrival time is equal to current time, add process to queue.
-					if (processes[x] > current_time && processes[x] <= current_time + t) {
-						arrive = x;
-						minus = t;
-						break;
-					}
-				}
-				if (minus != 0) {
-					break;
-				}
-			}
-
-			if (arrive != -1 && rem_bt[i] > minus) {
-				// means that some process arrive
-				rem_bt[i] -= minus;
-				for (int x = 0; x < n; x++) {
-					// go over all processes, if arrival time is equal to current time, add process to queue.
-					if (processes[x] >= current_time && processes[x] < current_time + rem_bt[i]) {
-						if (isExists(queue, x)) enqueue(queue, x);
-					}
-				}
-				if (rem_bt[i] != 0) enqueue(queue, i);
-				current_time += minus - 1;
-			} else {
-				rem_bt[i] = 0;
-//				printf("Process index %d is completed\n", i);
-
-				for (int x = 0; x < n; x++) {
-					// go over all processes, if arrival time is equal to current time, add process to queue.
-					if (processes[x] > current_time && processes[x] < current_time + bt[i]) {
-						if (isExists(queue, x)) enqueue(queue, x);
-					}
-				}
-				current_time += bt[i] - 1;
-				tat[i] = current_time - processes[i];
-//				printf("process %d tat is: %d\n", processes[i], tat[i]);
-			}
 		}
 	}
 	// Calculate total turn around time
@@ -283,8 +329,7 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 
 	float _current_time = (float) total_tat / (float) n;
 
-	if (preemptive == 1) printf("LCFS (P): mean turnaround = %.2f\n", _current_time);
-	else if (preemptive == 0) printf("LCFS (NP): mean turnaround = %.2f\n", _current_time);
+	printf("LCFS (P): mean turnaround = %.2f\n", _current_time);
 	// clean the queue if needed
 	while (!isEmpty(queue)) dequeue(queue);
 }
@@ -564,10 +609,10 @@ int main(int argc, char *argv[]) {
 	struct Queue *queue = createQueue(n_procs);
 
 	// LCFS (NP): mean turnaround = ?
-	LCFSfindTurnAroundTime(queue, processes, n_procs, burst_time, 0);
+	LCFSfindTurnAroundTime(queue, processes, n_procs, burst_time);
 
 	// LCFS (P): mean turnaround = ?
-	LCFSfindTurnAroundTime(queue, processes, n_procs, burst_time, 1);
+	LCFSfindTurnAroundTimePreemptive(queue, processes, n_procs, burst_time);
 
 	// RR: mean turnaround = ?
 	RRfindTurnAroundTime(processes, n_procs, burst_time, 2);
