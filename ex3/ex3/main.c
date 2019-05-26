@@ -102,7 +102,7 @@ void FCFSfindTurnAroundTime(const int processes[], int n, const int bt[]) {
 //		printf("Turnaround time of %d is %d\n", i, tat[i]);
 	}
 	float current_time = (float) total_tat / (float) n;
-	printf("FCFS: mean turnaround = %.2f\n", current_time);
+	printf("%.2f\n", current_time);
 }
 
 
@@ -235,7 +235,7 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 
 	float _current_time = (float) total_tat / (float) n;
 
-	printf("LCFS (NP): mean turnaround = %.2f\n", _current_time);
+	printf("%.2f\n", _current_time);
 	// clean the queue if needed
 	while (!isEmpty(queue)) dequeue(queue);
 }
@@ -348,7 +348,7 @@ void SJFfindTurnAroundTime(Process process_list[], int n) {
 //		printf("%d \current_time\current_time %d \current_time\current_time %d \current_time\current_time %d\n", process_list[i].pid, process_list[i].bt, wt[i], tat[i]);
 	}
 
-	printf("SJF: mean turnaround = %.2f\n", (float) total_tat / (float) n);
+	printf("%.2f\n", (float) total_tat / (float) n);
 }
 
 void LCFSfindTurnAroundTimePreemptive(const int processes[], const int bt[], const int len)
@@ -398,7 +398,7 @@ void LCFSfindTurnAroundTimePreemptive(const int processes[], const int bt[], con
 			turn_around_total += complete_time[i] - processes[i];
 		}
 	}
-	printf("LCFS (P): mean turnaround = %.2f\n", (double)turn_around_total / len);
+	printf("%.2f\n", (double)turn_around_total / len);
 }
 
 void RRfindTurnAroundTime(const int processes[], const int bt[], int len, int quantum)
@@ -448,7 +448,7 @@ void RRfindTurnAroundTime(const int processes[], const int bt[], int len, int qu
 			turn_around_total += complete_time[i] - processes[i];
 		}
 	}
-	printf("RR: mean turnaround = %.2f\n", (double)turn_around_total / len);
+	printf("%.2f\n", (double)turn_around_total / len);
 }
 
 int main(int argc, char *argv[]) {
