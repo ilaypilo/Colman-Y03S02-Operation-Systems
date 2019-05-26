@@ -167,7 +167,7 @@ int isExists(struct Queue *queue, int x) {
 
 void LCFSfindWaitingTime(const int processes[], const int n, const int bt[], int wt[]) {
 	// waiting time for first process is 0
-	wt[0] = processes[0];
+	wt[0] = 0;
 
 	// calculating waiting time
 	for (int i = 1; i < n; i++)
@@ -190,7 +190,7 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 		int done = 1;
 		current_time++;
 
-		for (int i = 0; i < n; i++) {
+		for (int i = n - 1; i >= 0; i--) {
 			// go over all processes, if arrival time is equal to current time, add process to queue.
 			if (processes[i] == current_time) {
 				if (isExists(queue, i)) enqueue(queue, i);
@@ -217,16 +217,19 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 			// calculating waiting time
 			LCFSfindWaitingTime(processes, n, bt, wt);
 
-			// calculating turnaround time by adding: bt[i] + wt[i]
-			tat[i] = bt[i] + wt[i];
-
-			for (int x = 0; x < n; x++) {
+			for (int x = n - 1; x >= 0; x--) {
 				// go over all processes, if arrival time is equal to current time, add process to queue.
 				if (processes[x] > current_time && processes[x] < current_time + bt[i]) {
 					if (isExists(queue, x)) enqueue(queue, x);
 				}
 			}
 			current_time += bt[i] - 1;
+//			printf("Process index %d is completed\n", i);
+
+			// calculating turnaround time by adding: bt[i] + wt[i]
+			tat[i] = current_time + 1 - processes[i];
+//			printf("process %d tat is: %d\n", processes[i], tat[i]);
+
 		} else {
 			//preemptive
 			int minus = 0;
@@ -271,6 +274,7 @@ void LCFSfindTurnAroundTime(struct Queue *queue, const int processes[], int n, c
 				}
 				current_time += bt[i] - 1;
 				tat[i] = current_time - processes[i];
+//				printf("process %d tat is: %d\n", processes[i], tat[i]);
 			}
 		}
 	}
