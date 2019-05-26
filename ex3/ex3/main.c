@@ -353,41 +353,41 @@ void SJFfindTurnAroundTime(Process process_list[], int n) {
 
 void LCFSfindTurnAroundTimePreemptive(const int processes[], const int bt[], const int len)
 {
-	//Execution: first row CPU Time Remain, second row Time Completed.
-	int Execution[2][BUFFER_SIZE];
-	int currentTime = 1;
+	int cpu_time[BUFFER_SIZE];
+	int complete_time[BUFFER_SIZE];
+	int current_time = 1;
 	int i, j;
-	int sumTA = 0;
-	int totalExecutionRemain = 0;
+	int turn_around_total = 0;
+	int total_exec_left = 0;
 	int maxArival = 0;
-	int currentTimeChanged = 0;
+	int current_time_change = 0;
 	for (i = 0; i < len; i++)
 	{
-		Execution[0][i] = bt[i];
-		Execution[1][i] = 0;
-		totalExecutionRemain += Execution[0][i];
+		cpu_time[i] = bt[i];
+		complete_time[i] = 0;
+		total_exec_left += cpu_time[i];
 	}
-	while (totalExecutionRemain > 0)
+	while (total_exec_left > 0)
 	{
-		currentTimeChanged = 0;
+		current_time_change = 0;
 		maxArival = 0;
 		for (i = 0; i < len; i++)
 		{
-			if ((currentTime >= processes[i]) && (processes[i] > maxArival) && (Execution[0][i] > 0))
+			if ((current_time >= processes[i]) && (processes[i] > maxArival) && (cpu_time[i] > 0))
 			{
 				maxArival = processes[i];
 				j = i;
-				currentTimeChanged = 1;
+				current_time_change = 1;
 			}
 		}
-		currentTime++;
-		if (1 == currentTimeChanged)
+		current_time++;
+		if (1 == current_time_change)
 		{
-			Execution[0][j]--;
-			totalExecutionRemain--;
-			if ((Execution[1][j] == 0) && ((Execution[0][j] <= 0)))
+			cpu_time[j]--;
+			total_exec_left--;
+			if ((complete_time[j] == 0) && ((cpu_time[j] <= 0)))
 			{
-				Execution[1][j] = currentTime;
+				complete_time[j] = current_time;
 			}
 		}
 	}
@@ -395,60 +395,60 @@ void LCFSfindTurnAroundTimePreemptive(const int processes[], const int bt[], con
 	{
 		if (bt[i] > 0)
 		{
-			sumTA += Execution[1][i] - processes[i];
+			turn_around_total += complete_time[i] - processes[i];
 		}
 	}
-	printf("LCFS (P): mean turnaround = %.2f\n", (double)sumTA / len);
+	printf("LCFS (P): mean turnaround = %.2f\n", (double)turn_around_total / len);
 }
 
 void RRfindTurnAroundTime(const int processes[], const int bt[], int len, int quantum)
 {
-	//Execution: first row CPU Time, second row Time Completed.
-	int Execution[2][BUFFER_SIZE];
-	int currentTime = 1;
+	int cpu_time[BUFFER_SIZE];
+	int complete_time[BUFFER_SIZE];
+	int current_time = 1;
 	int i, j;
-	int sumTA = 0;
-	int totalExecutionRemain = 0;
-	int currentTimeChanged = 0;
+	int turn_around_total = 0;
+	int total_exec_left = 0;
+	int current_time_change = 0;
 	for (i = 0; i < len; i++)
 	{
-		Execution[0][i] = bt[i];
-		Execution[1][i] = 0;
-		totalExecutionRemain += Execution[0][i];
+		cpu_time[i] = bt[i];
+		complete_time[i] = 0;
+		total_exec_left += cpu_time[i];
 	}
-	while (totalExecutionRemain > 0)
+	while (total_exec_left > 0)
 	{
-		currentTimeChanged = 0;
+		current_time_change = 0;
 		for (i = 0; i < len; i++)
 		{
-			for (j = 0; (j < quantum) && (currentTime >= processes[i]); j++)
+			for (j = 0; (j < quantum) && (current_time >= processes[i]); j++)
 			{
-				if (Execution[0][i] > 0)
+				if (cpu_time[i] > 0)
 				{
-					Execution[0][i]--;
-					totalExecutionRemain--;
-					currentTime++;
-					currentTimeChanged = 1;
+					cpu_time[i]--;
+					total_exec_left--;
+					current_time++;
+					current_time_change = 1;
 				}
-				if ((Execution[1][i] == 0) && ((Execution[0][i] <= 0)))
+				if ((complete_time[i] == 0) && ((cpu_time[i] <= 0)))
 				{
-					Execution[1][i] = currentTime;
+					complete_time[i] = current_time;
 				}
 			}
 		}
-		if (0 == currentTimeChanged)
+		if (0 == current_time_change)
 		{
-			currentTime++;
+			current_time++;
 		}
 	}
 	for (i = 0; i < len; i++)
 	{
 		if (bt[i] > 0)
 		{
-			sumTA += Execution[1][i] - processes[i];
+			turn_around_total += complete_time[i] - processes[i];
 		}
 	}
-	printf("RR: mean turnaround = %.2f\n", (double)sumTA / len);
+	printf("RR: mean turnaround = %.2f\n", (double)turn_around_total / len);
 }
 
 int main(int argc, char *argv[]) {
